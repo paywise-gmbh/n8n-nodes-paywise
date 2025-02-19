@@ -9,7 +9,6 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - ./dist:/home/node/.n8n/custom/paywise-n8n-node
-      - ./dist/paywise.svg:/home/node/.n8n/custom/paywise-n8n-node/paywise.svg
     restart: always
 
 volumes:

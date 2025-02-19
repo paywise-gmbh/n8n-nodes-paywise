@@ -21,7 +21,7 @@ export class Paywise implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Paywise',
 		name: 'paywise',
-		icon: 'fa:money',
+		icon: 'file:paywise-logo.svg',
 		group: ['transform'],
 		version: 1,
 		description: 'Consume Paywise API',
@@ -185,76 +185,60 @@ export class Paywise implements INodeType {
 				},
 				description: 'ID of the debtor to retrieve',
 			},
-			// Create Claim Fields
+			// Create Options
 			{
-				displayName: 'Debtor ID',
-				name: 'debtorId',
-				type: 'string',
-				default: '',
-				required: true,
+				displayName: 'Input Type',
+				name: 'inputType',
+				type: 'options',
+				options: [
+					{
+						name: 'Fields',
+						value: 'fields',
+						description: 'Input individual fields',
+					},
+					{
+						name: 'JSON',
+						value: 'json',
+						description: 'Input JSON object',
+					},
+				],
+				default: 'fields',
 				displayOptions: {
 					show: {
-						operation: ['createClaim'],
-						resource: ['claim'],
+						operation: ['createDebtor', 'createClaim'],
 					},
 				},
-				description: 'ID of the debtor for this claim',
+				description: 'Whether to input data via fields or JSON object',
 			},
+			// JSON Input for Create Debtor
 			{
-				displayName: 'Reference',
-				name: 'reference',
-				type: 'string',
-				default: '',
+				displayName: 'JSON Data',
+				name: 'jsonData',
+				type: 'json',
+				default: '{\n  "companyName": "",\n  "firstName": "",\n  "lastName": "",\n  "email": "",\n  "phone": "",\n  "address": {\n    "street": "",\n    "houseNumber": "",\n    "postalCode": "",\n    "city": "",\n    "country": ""\n  }\n}',
 				required: true,
 				displayOptions: {
 					show: {
-						operation: ['createClaim'],
-						resource: ['claim'],
+						operation: ['createDebtor'],
+						inputType: ['json'],
 					},
 				},
-				description: 'Your reference for this claim',
+				description: 'Debtor data as JSON object',
 			},
+			// JSON Input for Create Claim
 			{
-				displayName: 'Amount',
-				name: 'amount',
-				type: 'number',
-				default: 0,
+				displayName: 'JSON Data',
+				name: 'jsonData',
+				type: 'json',
+				default: '{\n  "debtorId": "",\n  "reference": "",\n  "amount": 0,\n  "dueDate": "",\n  "description": ""\n}',
 				required: true,
 				displayOptions: {
 					show: {
 						operation: ['createClaim'],
-						resource: ['claim'],
+						inputType: ['json'],
 					},
 				},
-				description: 'Amount of the claim in cents',
-			},
-			{
-				displayName: 'Due Date',
-				name: 'dueDate',
-				type: 'dateTime',
-				default: '',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['createClaim'],
-						resource: ['claim'],
-					},
-				},
-				description: 'Due date of the claim',
-			},
-			{
-				displayName: 'Description',
-				name: 'description',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['createClaim'],
-						resource: ['claim'],
-					},
-				},
-				description: 'Description of the claim',
+				description: 'Claim data as JSON object',
 			},
 			// Create Debtor Fields
 			{
@@ -266,7 +250,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -279,7 +263,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -292,7 +276,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -306,7 +290,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -319,7 +303,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -332,7 +316,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -345,7 +329,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -358,7 +342,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -371,7 +355,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -384,7 +368,7 @@ export class Paywise implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['createDebtor'],
-						resource: ['debtor'],
+						inputType: ['fields'],
 					},
 				},
 			},
@@ -718,21 +702,29 @@ export class Paywise implements INodeType {
 
 		try {
 			if (operation === 'createDebtor') {
-				// Get all the debtor fields
-				const debtor = {
-					companyName: this.getNodeParameter('companyName', 0) as string,
-					firstName: this.getNodeParameter('firstName', 0) as string,
-					lastName: this.getNodeParameter('lastName', 0) as string,
-					email: this.getNodeParameter('email', 0) as string,
-					phone: this.getNodeParameter('phone', 0) as string,
-					address: {
-						street: this.getNodeParameter('street', 0) as string,
-						houseNumber: this.getNodeParameter('houseNumber', 0) as string,
-						postalCode: this.getNodeParameter('postalCode', 0) as string,
-						city: this.getNodeParameter('city', 0) as string,
-						country: this.getNodeParameter('country', 0) as string,
-					},
-				};
+				const inputType = this.getNodeParameter('inputType', 0) as string;
+				let debtorData;
+
+				if (inputType === 'json') {
+					// Get data from JSON input
+					debtorData = JSON.parse(this.getNodeParameter('jsonData', 0) as string);
+				} else {
+					// Get data from individual fields
+					debtorData = {
+						companyName: this.getNodeParameter('companyName', 0) as string,
+						firstName: this.getNodeParameter('firstName', 0) as string,
+						lastName: this.getNodeParameter('lastName', 0) as string,
+						email: this.getNodeParameter('email', 0) as string,
+						phone: this.getNodeParameter('phone', 0) as string,
+						address: {
+							street: this.getNodeParameter('street', 0) as string,
+							houseNumber: this.getNodeParameter('houseNumber', 0) as string,
+							postalCode: this.getNodeParameter('postalCode', 0) as string,
+							city: this.getNodeParameter('city', 0) as string,
+							country: this.getNodeParameter('country', 0) as string,
+						},
+					};
+				}
 
 				// Make API call to create debtor
 				const options = {
@@ -742,7 +734,7 @@ export class Paywise implements INodeType {
 						'Content-Type': 'application/json',
 						'Accept': 'application/json',
 					},
-					body: JSON.stringify(debtor),
+					body: JSON.stringify(debtorData),
 				};
 
 				const response = await this.helpers.requestWithAuthentication.call(
@@ -757,14 +749,22 @@ export class Paywise implements INodeType {
 			}
 
 			if (operation === 'createClaim') {
-				// Get all the claim fields
-				const claim = {
-					debtorId: this.getNodeParameter('debtorId', 0) as string,
-					reference: this.getNodeParameter('reference', 0) as string,
-					amount: this.getNodeParameter('amount', 0) as number,
-					dueDate: this.getNodeParameter('dueDate', 0) as string,
-					description: this.getNodeParameter('description', 0) as string,
-				};
+				const inputType = this.getNodeParameter('inputType', 0) as string;
+				let claimData;
+
+				if (inputType === 'json') {
+					// Get data from JSON input
+					claimData = JSON.parse(this.getNodeParameter('jsonData', 0) as string);
+				} else {
+					// Get data from individual fields
+					claimData = {
+						debtorId: this.getNodeParameter('debtorId', 0) as string,
+						reference: this.getNodeParameter('reference', 0) as string,
+						amount: this.getNodeParameter('amount', 0) as number,
+						dueDate: this.getNodeParameter('dueDate', 0) as string,
+						description: this.getNodeParameter('description', 0) as string,
+					};
+				}
 
 				// Make API call to create claim
 				const options = {
@@ -774,7 +774,7 @@ export class Paywise implements INodeType {
 						'Content-Type': 'application/json',
 						'Accept': 'application/json',
 					},
-					body: JSON.stringify(claim),
+					body: JSON.stringify(claimData),
 				};
 
 				const response = await this.helpers.requestWithAuthentication.call(

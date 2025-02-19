@@ -7,4 +7,4 @@ function copyIcons() {
 		.pipe(dest('dist'));       // Root location
 }
 
-exports['build:icons'] = copyIcons; 
+exports['copy:icons'] = copyIcons; 
