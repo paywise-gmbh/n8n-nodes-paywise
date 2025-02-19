@@ -185,7 +185,7 @@ export class Paywise implements INodeType {
 				},
 				description: 'ID of the debtor to retrieve',
 			},
-			// Create Options
+			// Input Type for Create and Update Operations
 			{
 				displayName: 'Input Type',
 				name: 'inputType',
@@ -205,12 +205,12 @@ export class Paywise implements INodeType {
 				default: 'fields',
 				displayOptions: {
 					show: {
-						operation: ['createDebtor', 'createClaim'],
+						operation: ['createDebtor', 'createClaim', 'updateDebtor', 'updateClaim'],
 					},
 				},
 				description: 'Whether to input data via fields or JSON object',
 			},
-			// JSON Input for Create Debtor
+			// JSON Input for Create/Update Debtor
 			{
 				displayName: 'JSON Data',
 				name: 'jsonData',
@@ -219,13 +219,13 @@ export class Paywise implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						operation: ['createDebtor'],
+						operation: ['createDebtor', 'updateDebtor'],
 						inputType: ['json'],
 					},
 				},
 				description: 'Debtor data as JSON object',
 			},
-			// JSON Input for Create Claim
+			// JSON Input for Create/Update Claim
 			{
 				displayName: 'JSON Data',
 				name: 'jsonData',
@@ -234,7 +234,7 @@ export class Paywise implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						operation: ['createClaim'],
+						operation: ['createClaim', 'updateClaim'],
 						inputType: ['json'],
 					},
 				},
@@ -372,31 +372,31 @@ export class Paywise implements INodeType {
 					},
 				},
 			},
-			// Fields for Update Claim
+			// Create Claim Fields
 			{
-				displayName: 'Claim ID',
-				name: 'claimId',
+				displayName: 'Debtor ID',
+				name: 'debtorId',
 				type: 'string',
 				default: '',
 				required: true,
 				displayOptions: {
 					show: {
-						operation: ['getClaim', 'cancelClaim'],
-						resource: ['claim'],
+						operation: ['createClaim'],
+						inputType: ['fields'],
 					},
 				},
-				description: 'ID of the claim',
+				description: 'ID of the debtor for this claim',
 			},
 			{
 				displayName: 'Reference',
 				name: 'reference',
 				type: 'string',
 				default: '',
-				required: false,
+				required: true,
 				displayOptions: {
 					show: {
-						operation: ['updateClaim'],
-						resource: ['claim'],
+						operation: ['createClaim'],
+						inputType: ['fields'],
 					},
 				},
 				description: 'Your reference for this claim',
@@ -406,11 +406,11 @@ export class Paywise implements INodeType {
 				name: 'amount',
 				type: 'number',
 				default: 0,
-				required: false,
+				required: true,
 				displayOptions: {
 					show: {
-						operation: ['updateClaim'],
-						resource: ['claim'],
+						operation: ['createClaim'],
+						inputType: ['fields'],
 					},
 				},
 				description: 'Amount of the claim in cents',
@@ -420,11 +420,11 @@ export class Paywise implements INodeType {
 				name: 'dueDate',
 				type: 'dateTime',
 				default: '',
-				required: false,
+				required: true,
 				displayOptions: {
 					show: {
-						operation: ['updateClaim'],
-						resource: ['claim'],
+						operation: ['createClaim'],
+						inputType: ['fields'],
 					},
 				},
 				description: 'Due date of the claim',
@@ -434,11 +434,11 @@ export class Paywise implements INodeType {
 				name: 'description',
 				type: 'string',
 				default: '',
-				required: false,
+				required: true,
 				displayOptions: {
 					show: {
-						operation: ['updateClaim'],
-						resource: ['claim'],
+						operation: ['createClaim'],
+						inputType: ['fields'],
 					},
 				},
 				description: 'Description of the claim',
@@ -616,21 +616,7 @@ export class Paywise implements INodeType {
 						resource: ['claim'],
 					},
 				},
-				description: 'Name of the binary property containing the file data to upload',
-			},
-			{
-				displayName: 'Document Type',
-				name: 'documentType',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['uploadDocument'],
-						resource: ['claim'],
-					},
-				},
-				description: 'Type of the document being uploaded',
+				description: 'Name of the binary property containing the file data to upload. Allowed formats: PDF, JPEG, PNG',
 			},
 			// Pagination Parameters for List Claims
 			{
@@ -906,32 +892,40 @@ export class Paywise implements INodeType {
 
 			if (operation === 'updateDebtor') {
 				const debtorId = this.getNodeParameter('debtorId', 0) as string;
-				const updateFields = [
-					'companyName', 'firstName', 'lastName', 'email', 'phone',
-					'street', 'houseNumber', 'postalCode', 'city', 'country',
-				];
+				const inputType = this.getNodeParameter('inputType', 0) as string;
+				let updateData: any = {};
 
-				const updateData: any = {};
-				const address: any = {};
+				if (inputType === 'json') {
+					// Get data from JSON input
+					updateData = JSON.parse(this.getNodeParameter('jsonData', 0) as string);
+				} else {
+					// Get data from individual fields
+					const updateFields = [
+						'companyName', 'firstName', 'lastName', 'email', 'phone',
+						'street', 'houseNumber', 'postalCode', 'city', 'country',
+					];
 
-				for (const field of updateFields) {
-					const value = this.getNodeParameter(field, 0, null) as string;
-					if (value !== null) {
-						if (['street', 'houseNumber', 'postalCode', 'city', 'country'].includes(field)) {
-							address[field] = value;
-						} else {
-							updateData[field] = value;
+					const address: any = {};
+
+					for (const field of updateFields) {
+						const value = this.getNodeParameter(field, 0, null) as string;
+						if (value !== null) {
+							if (['street', 'houseNumber', 'postalCode', 'city', 'country'].includes(field)) {
+								address[field] = value;
+							} else {
+								updateData[field] = value;
+							}
 						}
 					}
-				}
 
-				if (Object.keys(address).length > 0) {
-					updateData.address = address;
+					if (Object.keys(address).length > 0) {
+						updateData.address = address;
+					}
 				}
 
 				const options = {
 					method: 'PUT',
-					url: `${credentials.baseUrl}/debtors/${debtorId}/`,
+					url: `${credentials.baseUrl}/debtors/${debtorId}`,
 					headers: {
 						'Content-Type': 'application/json',
 						'Accept': 'application/json',
@@ -973,19 +967,27 @@ export class Paywise implements INodeType {
 
 			if (operation === 'updateClaim') {
 				const claimId = this.getNodeParameter('claimId', 0) as string;
-				const updateFields = ['reference', 'amount', 'dueDate', 'description'];
-				const updateData: any = {};
+				const inputType = this.getNodeParameter('inputType', 0) as string;
+				let updateData: any = {};
 
-				for (const field of updateFields) {
-					const value = this.getNodeParameter(field, 0, null);
-					if (value !== null) {
-						updateData[field] = value;
+				if (inputType === 'json') {
+					// Get data from JSON input
+					updateData = JSON.parse(this.getNodeParameter('jsonData', 0) as string);
+				} else {
+					// Get data from individual fields
+					const updateFields = ['reference', 'amount', 'dueDate', 'description'];
+					
+					for (const field of updateFields) {
+						const value = this.getNodeParameter(field, 0, null);
+						if (value !== null) {
+							updateData[field] = value;
+						}
 					}
 				}
 
 				const options = {
 					method: 'PUT',
-					url: `${credentials.baseUrl}/claims/${claimId}/`,
+					url: `${credentials.baseUrl}/claims/${claimId}`,
 					headers: {
 						'Content-Type': 'application/json',
 						'Accept': 'application/json',
@@ -1091,7 +1093,6 @@ export class Paywise implements INodeType {
 			if (operation === 'uploadDocument') {
 				const claimId = this.getNodeParameter('claimId', 0) as string;
 				const binaryPropertyName = this.getNodeParameter('binaryPropertyName', 0) as string;
-				const documentType = this.getNodeParameter('documentType', 0) as string;
 
 				const item = items[0];
 
@@ -1108,15 +1109,25 @@ export class Paywise implements INodeType {
 					);
 				}
 
+				// Validate file format
+				const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+				if (!allowedMimeTypes.includes(binaryData.mimeType)) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Invalid file format. Allowed formats are PDF, JPEG, and PNG. Received: ${binaryData.mimeType}`,
+					);
+				}
+
+				const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(0, binaryPropertyName);
+
 				const formData = {
 					file: {
-						value: Buffer.from(binaryData.data, 'base64'),
+						value: binaryDataBuffer,
 						options: {
 							filename: binaryData.fileName,
 							contentType: binaryData.mimeType,
 						},
 					},
-					type: documentType,
 				};
 
 				const options = {
@@ -1124,6 +1135,7 @@ export class Paywise implements INodeType {
 					url: `${credentials.baseUrl}/claims/${claimId}/documents/`,
 					headers: {
 						'Accept': 'application/json',
+						'Content-Type': 'multipart/form-data',
 					},
 					formData,
 				};
