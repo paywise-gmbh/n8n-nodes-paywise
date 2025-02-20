@@ -20,15 +20,16 @@ docker-compose up -d
 ```
 
 ## Development
-
 - The n8n interface will be available at: http://localhost:5678
-- Default login credentials: admin@admin.com / password
 
 ## Testing
 
 1. After starting n8n, the Paywise node will be available in the nodes panel
-2. Add the node to a workflow
-3. Execute the workflow to test the basic functionality
+2. Add new Credentials with the following values:
+    - Base URL: https://api.localhost:8006/api/v1/
+    - API Key: your_api_key
+3. Add the node to a workflow
+4. Execute the workflow to test the basic functionality
 
 ## Building
 
