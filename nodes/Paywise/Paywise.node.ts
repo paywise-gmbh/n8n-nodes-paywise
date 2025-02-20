@@ -153,6 +153,18 @@ export class Paywise implements INodeType {
 						description: 'List all debtors',
 						action: 'List all debtors',
 					},
+					{
+						name: 'Add Bank Account',
+						value: 'addBankAccount',
+						description: 'Add bank account information to a debtor',
+						action: 'Add bank account information to a debtor',
+					},
+					{
+						name: 'Add Address',
+						value: 'addAddress',
+						description: 'Add address information to a debtor',
+						action: 'Add address information to a debtor',
+					},
 				],
 				default: 'listDebtors',
 			},
@@ -205,7 +217,7 @@ export class Paywise implements INodeType {
 				default: 'fields',
 				displayOptions: {
 					show: {
-						operation: ['createDebtor', 'createClaim', 'updateDebtor', 'updateClaim'],
+						operation: ['createDebtor', 'createClaim'],
 					},
 				},
 				description: 'Whether to input data via fields or JSON object',
@@ -219,7 +231,7 @@ export class Paywise implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						operation: ['createDebtor', 'updateDebtor'],
+						operation: ['createDebtor'],
 						inputType: ['json'],
 					},
 				},
@@ -234,7 +246,7 @@ export class Paywise implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						operation: ['createClaim', 'updateClaim'],
+						operation: ['createClaim'],
 						inputType: ['json'],
 					},
 				},
@@ -443,152 +455,6 @@ export class Paywise implements INodeType {
 				},
 				description: 'Description of the claim',
 			},
-			// Fields for Update Debtor
-			{
-				displayName: 'Debtor ID',
-				name: 'debtorId',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor', 'deleteDebtor'],
-						resource: ['debtor'],
-					},
-				},
-				description: 'ID of the debtor to update',
-			},
-			{
-				displayName: 'Company Name',
-				name: 'companyName',
-				type: 'string',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'First Name',
-				name: 'firstName',
-				type: 'string',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'Last Name',
-				name: 'lastName',
-				type: 'string',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'Email',
-				name: 'email',
-				type: 'string',
-				placeholder: 'name@email.com',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'Phone',
-				name: 'phone',
-				type: 'string',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'Street',
-				name: 'street',
-				type: 'string',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'House Number',
-				name: 'houseNumber',
-				type: 'string',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'Postal Code',
-				name: 'postalCode',
-				type: 'string',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'City',
-				name: 'city',
-				type: 'string',
-				default: '',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
-			{
-				displayName: 'Country',
-				name: 'country',
-				type: 'string',
-				default: 'DE',
-				required: false,
-				displayOptions: {
-					show: {
-						operation: ['updateDebtor'],
-						resource: ['debtor'],
-					},
-				},
-			},
 			// Fields for Document Upload
 			{
 				displayName: 'Claim ID',
@@ -676,6 +542,196 @@ export class Paywise implements INodeType {
 				},
 				description: 'Number of debtors to skip',
 			},
+			// Fields for Add Bank Account
+			{
+				displayName: 'Debtor ID',
+				name: 'debtorId',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addBankAccount'],
+						resource: ['debtor'],
+					},
+				},
+				description: 'ID of the debtor to add bank account for',
+			},
+			{
+				displayName: 'Input Type',
+				name: 'inputType',
+				type: 'options',
+				options: [
+					{
+						name: 'Fields',
+						value: 'fields',
+						description: 'Input individual fields',
+					},
+					{
+						name: 'JSON',
+						value: 'json',
+						description: 'Input JSON object',
+					},
+				],
+				default: 'fields',
+				displayOptions: {
+					show: {
+						operation: ['addBankAccount'],
+					},
+				},
+				description: 'Whether to input data via fields or JSON object',
+			},
+			{
+				displayName: 'JSON Data',
+				name: 'jsonData',
+				type: 'json',
+				default: '{\n  "iban": "",\n  "bic": ""\n}',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addBankAccount'],
+						inputType: ['json'],
+					},
+				},
+				description: 'Bank account data as JSON object',
+			},
+			{
+				displayName: 'IBAN',
+				name: 'iban',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addBankAccount'],
+						inputType: ['fields'],
+					},
+				},
+				description: 'International Bank Account Number',
+			},
+			{
+				displayName: 'BIC',
+				name: 'bic',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addBankAccount'],
+						inputType: ['fields'],
+					},
+				},
+				description: 'Bank Identifier Code',
+			},
+			// Fields for Add Address
+			{
+				displayName: 'Debtor ID',
+				name: 'debtorId',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addAddress'],
+						resource: ['debtor'],
+					},
+				},
+				description: 'ID of the debtor to add address for',
+			},
+			{
+				displayName: 'Input Type',
+				name: 'inputType',
+				type: 'options',
+				options: [
+					{
+						name: 'Fields',
+						value: 'fields',
+						description: 'Input individual fields',
+					},
+					{
+						name: 'JSON',
+						value: 'json',
+						description: 'Input JSON object',
+					},
+				],
+				default: 'fields',
+				displayOptions: {
+					show: {
+						operation: ['addAddress'],
+					},
+				},
+				description: 'Whether to input data via fields or JSON object',
+			},
+			{
+				displayName: 'JSON Data',
+				name: 'jsonData',
+				type: 'json',
+				default: '{\n  "street": "",\n  "zip": "",\n  "city": "",\n  "country": "AF"\n}',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addAddress'],
+						inputType: ['json'],
+					},
+				},
+				description: 'Address data as JSON object',
+			},
+			{
+				displayName: 'Street',
+				name: 'street',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addAddress'],
+						inputType: ['fields'],
+					},
+				},
+				description: 'Street name',
+			},
+			{
+				displayName: 'ZIP',
+				name: 'zip',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addAddress'],
+						inputType: ['fields'],
+					},
+				},
+				description: 'ZIP/Postal code',
+			},
+			{
+				displayName: 'City',
+				name: 'city',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addAddress'],
+						inputType: ['fields'],
+					},
+				},
+				description: 'City name',
+			},
+			{
+				displayName: 'Country',
+				name: 'country',
+				type: 'string',
+				default: 'AF',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['addAddress'],
+						inputType: ['fields'],
+					},
+				},
+				description: 'Country code (e.g., AF for Afghanistan)',
+			},
 		],
 	};
 
@@ -715,7 +771,7 @@ export class Paywise implements INodeType {
 				// Make API call to create debtor
 				const options = {
 					method: 'POST',
-					url: `${credentials.baseUrl}/debtors`,
+					url: `${credentials.baseUrl}/debtors/`,
 					headers: {
 						'Content-Type': 'application/json',
 						'Accept': 'application/json',
@@ -755,7 +811,7 @@ export class Paywise implements INodeType {
 				// Make API call to create claim
 				const options = {
 					method: 'POST',
-					url: `${credentials.baseUrl}/claims`,
+					url: `${credentials.baseUrl}/claims/`,
 					headers: {
 						'Content-Type': 'application/json',
 						'Accept': 'application/json',
@@ -778,7 +834,7 @@ export class Paywise implements INodeType {
 				const claimId = this.getNodeParameter('claimId', 0) as string;
 				const options = {
 					method: 'GET',
-					url: `${credentials.baseUrl}/claims/${claimId}`,
+					url: `${credentials.baseUrl}/claims/${claimId}/`,
 					headers: {
 						'Accept': 'application/json',
 					},
@@ -822,7 +878,7 @@ export class Paywise implements INodeType {
 
 				const options = {
 					method: 'GET',
-					url: `${credentials.baseUrl}/claims`,
+					url: `${credentials.baseUrl}/claims/`,
 					headers: {
 						'Accept': 'application/json',
 					},
@@ -849,7 +905,7 @@ export class Paywise implements INodeType {
 
 				const options = {
 					method: 'GET',
-					url: `${credentials.baseUrl}/debtors`,
+					url: `${credentials.baseUrl}/debtors/`,
 					headers: {
 						'Accept': 'application/json',
 					},
@@ -873,186 +929,7 @@ export class Paywise implements INodeType {
 			if (operation === 'getInfo') {
 				const options = {
 					method: 'GET',
-					url: `${credentials.baseUrl}/info`,
-					headers: {
-						'Accept': 'application/json',
-					},
-				};
-
-				const response = await this.helpers.requestWithAuthentication.call(
-					this,
-					'paywiseApi',
-					options,
-				);
-				
-				returnData.push({
-					json: JSON.parse(response),
-				});
-			}
-
-			if (operation === 'updateDebtor') {
-				const debtorId = this.getNodeParameter('debtorId', 0) as string;
-				const inputType = this.getNodeParameter('inputType', 0) as string;
-				let updateData: any = {};
-
-				if (inputType === 'json') {
-					// Get data from JSON input
-					updateData = JSON.parse(this.getNodeParameter('jsonData', 0) as string);
-				} else {
-					// Get data from individual fields
-					const updateFields = [
-						'companyName', 'firstName', 'lastName', 'email', 'phone',
-						'street', 'houseNumber', 'postalCode', 'city', 'country',
-					];
-
-					const address: any = {};
-
-					for (const field of updateFields) {
-						const value = this.getNodeParameter(field, 0, null) as string;
-						if (value !== null) {
-							if (['street', 'houseNumber', 'postalCode', 'city', 'country'].includes(field)) {
-								address[field] = value;
-							} else {
-								updateData[field] = value;
-							}
-						}
-					}
-
-					if (Object.keys(address).length > 0) {
-						updateData.address = address;
-					}
-				}
-
-				const options = {
-					method: 'PUT',
-					url: `${credentials.baseUrl}/debtors/${debtorId}`,
-					headers: {
-						'Content-Type': 'application/json',
-						'Accept': 'application/json',
-					},
-					body: JSON.stringify(updateData),
-				};
-
-				const response = await this.helpers.requestWithAuthentication.call(
-					this,
-					'paywiseApi',
-					options,
-				);
-				
-				returnData.push({
-					json: JSON.parse(response),
-				});
-			}
-
-			if (operation === 'deleteDebtor') {
-				const debtorId = this.getNodeParameter('debtorId', 0) as string;
-				const options = {
-					method: 'DELETE',
-					url: `${credentials.baseUrl}/debtors/${debtorId}/`,
-					headers: {
-						'Accept': 'application/json',
-					},
-				};
-
-				const response = await this.helpers.requestWithAuthentication.call(
-					this,
-					'paywiseApi',
-					options,
-				);
-				
-				returnData.push({
-					json: JSON.parse(response),
-				});
-			}
-
-			if (operation === 'updateClaim') {
-				const claimId = this.getNodeParameter('claimId', 0) as string;
-				const inputType = this.getNodeParameter('inputType', 0) as string;
-				let updateData: any = {};
-
-				if (inputType === 'json') {
-					// Get data from JSON input
-					updateData = JSON.parse(this.getNodeParameter('jsonData', 0) as string);
-				} else {
-					// Get data from individual fields
-					const updateFields = ['reference', 'amount', 'dueDate', 'description'];
-					
-					for (const field of updateFields) {
-						const value = this.getNodeParameter(field, 0, null);
-						if (value !== null) {
-							updateData[field] = value;
-						}
-					}
-				}
-
-				const options = {
-					method: 'PUT',
-					url: `${credentials.baseUrl}/claims/${claimId}`,
-					headers: {
-						'Content-Type': 'application/json',
-						'Accept': 'application/json',
-					},
-					body: JSON.stringify(updateData),
-				};
-
-				const response = await this.helpers.requestWithAuthentication.call(
-					this,
-					'paywiseApi',
-					options,
-				);
-				
-				returnData.push({
-					json: JSON.parse(response),
-				});
-			}
-
-			if (operation === 'deleteClaim') {
-				const claimId = this.getNodeParameter('claimId', 0) as string;
-				const options = {
-					method: 'DELETE',
-					url: `${credentials.baseUrl}/claims/${claimId}/`,
-					headers: {
-						'Accept': 'application/json',
-					},
-				};
-
-				const response = await this.helpers.requestWithAuthentication.call(
-					this,
-					'paywiseApi',
-					options,
-				);
-				
-				returnData.push({
-					json: JSON.parse(response),
-				});
-			}
-
-			if (operation === 'cancelClaim') {
-				const claimId = this.getNodeParameter('claimId', 0) as string;
-				const options = {
-					method: 'POST',
-					url: `${credentials.baseUrl}/claims/${claimId}/cancel/`,
-					headers: {
-						'Accept': 'application/json',
-					},
-				};
-
-				const response = await this.helpers.requestWithAuthentication.call(
-					this,
-					'paywiseApi',
-					options,
-				);
-				
-				returnData.push({
-					json: JSON.parse(response),
-				});
-			}
-
-			if (operation === 'remindClaim') {
-				const claimId = this.getNodeParameter('claimId', 0) as string;
-				const options = {
-					method: 'POST',
-					url: `${credentials.baseUrl}/claims/${claimId}/remind/`,
+					url: `${credentials.baseUrl}/info/`,
 					headers: {
 						'Accept': 'application/json',
 					},
@@ -1138,6 +1015,84 @@ export class Paywise implements INodeType {
 						'Content-Type': 'multipart/form-data',
 					},
 					formData,
+				};
+
+				const response = await this.helpers.requestWithAuthentication.call(
+					this,
+					'paywiseApi',
+					options,
+				);
+				
+				returnData.push({
+					json: JSON.parse(response),
+				});
+			}
+
+			if (operation === 'addBankAccount') {
+				const debtorId = this.getNodeParameter('debtorId', 0) as string;
+				const inputType = this.getNodeParameter('inputType', 0) as string;
+				let bankAccountData;
+
+				if (inputType === 'json') {
+					// Get data from JSON input
+					bankAccountData = JSON.parse(this.getNodeParameter('jsonData', 0) as string);
+				} else {
+					// Get data from individual fields
+					bankAccountData = {
+						iban: this.getNodeParameter('iban', 0) as string,
+						bic: this.getNodeParameter('bic', 0) as string,
+					};
+				}
+
+				// Make API call to add bank account
+				const options = {
+					method: 'POST',
+					url: `${credentials.baseUrl}/debtors/${debtorId}/bankaccounts/`,
+					headers: {
+						'Content-Type': 'application/json',
+						'Accept': 'application/json',
+					},
+					body: JSON.stringify(bankAccountData),
+				};
+
+				const response = await this.helpers.requestWithAuthentication.call(
+					this,
+					'paywiseApi',
+					options,
+				);
+				
+				returnData.push({
+					json: JSON.parse(response),
+				});
+			}
+
+			if (operation === 'addAddress') {
+				const debtorId = this.getNodeParameter('debtorId', 0) as string;
+				const inputType = this.getNodeParameter('inputType', 0) as string;
+				let addressData;
+
+				if (inputType === 'json') {
+					// Get data from JSON input
+					addressData = JSON.parse(this.getNodeParameter('jsonData', 0) as string);
+				} else {
+					// Get data from individual fields
+					addressData = {
+						street: this.getNodeParameter('street', 0) as string,
+						zip: this.getNodeParameter('zip', 0) as string,
+						city: this.getNodeParameter('city', 0) as string,
+						country: this.getNodeParameter('country', 0) as string,
+					};
+				}
+
+				// Make API call to add address
+				const options = {
+					method: 'POST',
+					url: `${credentials.baseUrl}/debtors/${debtorId}/addresses/`,
+					headers: {
+						'Content-Type': 'application/json',
+						'Accept': 'application/json',
+					},
+					body: JSON.stringify(addressData),
 				};
 
 				const response = await this.helpers.requestWithAuthentication.call(
