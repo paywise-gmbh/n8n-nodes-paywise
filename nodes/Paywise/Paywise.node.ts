@@ -666,7 +666,7 @@ export class Paywise implements INodeType {
 				displayName: 'JSON Data',
 				name: 'jsonData',
 				type: 'json',
-				default: '{\n  "street": "",\n  "zip": "",\n  "city": "",\n  "country": "AF"\n}',
+				default: '{\n  "street": "",\n  "zip": "",\n  "city": "",\n  "country": "DE"\n}',
 				required: true,
 				displayOptions: {
 					show: {
@@ -722,7 +722,7 @@ export class Paywise implements INodeType {
 				displayName: 'Country',
 				name: 'country',
 				type: 'string',
-				default: 'AF',
+				default: 'DE',
 				required: true,
 				displayOptions: {
 					show: {
