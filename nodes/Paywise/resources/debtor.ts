@@ -19,11 +19,26 @@ interface IBankAccount {
 	bic?: string;
 }
 
+interface IMetadata {
+	type: string;
+	value: string;
+}
+
+interface IEvent {
+	type: string;
+	title: string;
+	occurence: string;
+	your_reference?: string;
+	description?: string;
+	location?: string;
+}
+
 interface IPerson {
 	salutation?: string;
 	first_name: string;
 	last_name: string;
 	birth_date?: string;
+	death_date?: string;
 }
 
 interface IOrganization {
@@ -38,6 +53,8 @@ interface IDebtorData {
 	bank_accounts: IBankAccount[];
 	person?: IPerson;
 	organization?: IOrganization;
+	metadata?: IMetadata[];
+	events?: IEvent[];
 }
 
 export const debtorDescription: IResourceDescription = {
@@ -293,7 +310,16 @@ export const debtorDescription: IResourceDescription = {
 			typeOptions: {
 				multipleValues: true,
 			},
-			default: {},
+			default: {
+				addressValues: [
+					{
+						street: '',
+						zip: '',
+						city: '',
+						country: 'DE',
+					},
+				],
+			},
 			required: true,
 			displayOptions: {
 				show: {
@@ -443,6 +469,128 @@ export const debtorDescription: IResourceDescription = {
 				},
 			],
 		},
+		// Metadata
+		{
+			displayName: 'Metadata',
+			name: 'metadata',
+			placeholder: 'Add Metadata',
+			type: 'fixedCollection',
+			typeOptions: {
+				multipleValues: true,
+			},
+			default: {},
+			displayOptions: {
+				show: {
+					operation: ['createDebtor'],
+					inputType: ['fields'],
+				},
+			},
+			options: [
+				{
+					name: 'metadataValues',
+					displayName: 'Metadata',
+					values: [
+						{
+							displayName: 'Type',
+							name: 'type',
+							type: 'options',
+							options: [
+								{ name: 'User Reference', value: 'user:reference' },
+								{ name: 'User Name', value: 'user:name' },
+								{ name: 'User IP', value: 'user:ip' },
+								{ name: 'User Language', value: 'user:language' },
+							],
+							default: 'user:reference',
+							required: true,
+							description: 'Type of metadata',
+						},
+						{
+							displayName: 'Value',
+							name: 'value',
+							type: 'string',
+							default: '',
+							required: true,
+							description: 'Value for the metadata (1-255 characters)',
+						},
+					],
+				},
+			],
+		},
+		// Events
+		{
+			displayName: 'Events',
+			name: 'events',
+			placeholder: 'Add Event',
+			type: 'fixedCollection',
+			typeOptions: {
+				multipleValues: true,
+			},
+			default: {},
+			displayOptions: {
+				show: {
+					operation: ['createDebtor'],
+					inputType: ['fields'],
+				},
+			},
+			options: [
+				{
+					name: 'eventValues',
+					displayName: 'Event',
+					values: [
+						{
+							displayName: 'Type',
+							name: 'type',
+							type: 'options',
+							options: [
+								{ name: 'Registration', value: 'registration' },
+								{ name: 'Login', value: 'login' },
+								{ name: 'Insolvency', value: 'insolvency' },
+							],
+							default: 'registration',
+							required: true,
+							description: 'Type of event',
+						},
+						{
+							displayName: 'Title',
+							name: 'title',
+							type: 'string',
+							default: '',
+							required: true,
+							description: 'Title of the event (1-255 characters)',
+						},
+						{
+							displayName: 'Occurrence Date',
+							name: 'occurence',
+							type: 'dateTime',
+							default: '',
+							required: true,
+							description: 'Date and time when the event occurred',
+						},
+						{
+							displayName: 'Your Reference',
+							name: 'your_reference',
+							type: 'string',
+							default: '',
+							description: 'Your reference for this event (max 255 characters)',
+						},
+						{
+							displayName: 'Description',
+							name: 'description',
+							type: 'string',
+							default: '',
+							description: 'Description of the event (max 255 characters)',
+						},
+						{
+							displayName: 'Location',
+							name: 'location',
+							type: 'string',
+							default: '',
+							description: 'Location of the event (max 255 characters)',
+						},
+					],
+				},
+			],
+		},
 		// Get Debtor Properties
 		{
 			displayName: 'Debtor ID',
@@ -544,6 +692,40 @@ export const debtorOperations: IResourceFunctions = {
 				iban: account.iban,
 				bic: account.bic || undefined,
 			}));
+			
+			// Get metadata
+			const metadataCollection = this.getNodeParameter('metadata', 0, { metadataValues: [] }) as {
+				metadataValues: Array<{
+					type: string;
+					value: string;
+				}>;
+			};
+
+			const metadata = (metadataCollection.metadataValues || []).map((meta) => ({
+				type: meta.type,
+				value: meta.value,
+			}));
+			
+			// Get events
+			const eventsCollection = this.getNodeParameter('events', 0, { eventValues: [] }) as {
+				eventValues: Array<{
+					type: string;
+					title: string;
+					occurence: string;
+					your_reference: string;
+					description: string;
+					location: string;
+				}>;
+			};
+
+			const events = (eventsCollection.eventValues || []).map((event) => ({
+				type: event.type,
+				title: event.title,
+				occurence: event.occurence,
+				your_reference: event.your_reference || undefined,
+				description: event.description || undefined,
+				location: event.location || undefined,
+			}));
 
 			debtorData = {
 				your_reference: yourReference,
@@ -552,6 +734,15 @@ export const debtorOperations: IResourceFunctions = {
 				communication_channels: communicationChannels,
 				bank_accounts: bankAccounts,
 			};
+			
+			// Only add metadata and events if they exist
+			if (metadata.length > 0) {
+				debtorData.metadata = metadata;
+			}
+			
+			if (events.length > 0) {
+				debtorData.events = events;
+			}
 
 			if (debtorType === 'person') {
 				const birthDate = this.getNodeParameter('birth_date', 0, '') as string;
@@ -569,6 +760,10 @@ export const debtorOperations: IResourceFunctions = {
 		}
 
 		const credentials = await this.getCredentials('paywiseApi');
+		
+		// Log the request data for debugging - this will help identify validation issues
+		console.log('Debtor request data:', JSON.stringify(debtorData, null, 2));
+		
 		const options = {
 			method: 'POST',
 			url: `${credentials.baseUrl}/debtors/`,
@@ -579,13 +774,28 @@ export const debtorOperations: IResourceFunctions = {
 			body: JSON.stringify(debtorData),
 		};
 
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			options,
-		);
-		
-		return JSON.parse(response);
+		try {
+			const response = await this.helpers.requestWithAuthentication.call(
+				this,
+				'paywiseApi',
+				options,
+			);
+			
+			return JSON.parse(response);
+		} catch (error: any) {
+			// Enhanced error handling for validation errors
+			if (error.response && error.response.body) {
+				try {
+					const errorDetails = JSON.parse(error.response.body);
+					console.error('API Error Details:', JSON.stringify(errorDetails, null, 2));
+					throw new Error(`API Error: ${JSON.stringify(errorDetails)}`);
+				} catch (parseError) {
+					// If we can't parse the error response, just throw the original error
+					throw error;
+				}
+			}
+			throw error;
+		}
 	},
 
 	async getDebtor(this: IExecuteFunctions): Promise<JsonObject> {
