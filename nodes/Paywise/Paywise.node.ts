@@ -70,27 +70,60 @@ export class Paywise implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const resource = this.getNodeParameter('resource', 0) as string;
 		const operation = this.getNodeParameter('operation', 0) as string;
+		
+		console.log(`[Paywise.node] Executing operation: ${resource}.${operation}`);
 
 		try {
 			let result: JsonObject;
+			let operationFunction: Function | undefined;
 
 			// Execute the operation based on the resource type
 			switch (resource) {
 				case 'claim':
-					result = await claimOperations[operation].call(this);
+					console.log('[Paywise.node] Claim operations available:', Object.keys(claimOperations));
+					operationFunction = claimOperations[operation];
+					console.log(`[Paywise.node] Found operation function for ${operation}:`, !!operationFunction);
+					
+					if (!operationFunction) {
+						throw new Error(`Operation function not found: ${operation}`);
+					}
+					
+					result = await operationFunction.call(this);
 					break;
+					
 				case 'debtor':
-					result = await debtorOperations[operation].call(this);
+					console.log('[Paywise.node] Debtor operations available:', Object.keys(debtorOperations));
+					operationFunction = debtorOperations[operation];
+					console.log(`[Paywise.node] Found operation function for ${operation}:`, !!operationFunction);
+					
+					if (!operationFunction) {
+						throw new Error(`Operation function not found: ${operation}`);
+					}
+					
+					result = await operationFunction.call(this);
 					break;
+					
 				case 'info':
-					result = await infoOperations[operation].call(this);
+					console.log('[Paywise.node] Info operations available:', Object.keys(infoOperations));
+					operationFunction = infoOperations[operation];
+					console.log(`[Paywise.node] Found operation function for ${operation}:`, !!operationFunction);
+					
+					if (!operationFunction) {
+						throw new Error(`Operation function not found: ${operation}`);
+					}
+					
+					result = await operationFunction.call(this);
 					break;
+					
 				default:
 					throw new NodeOperationError(this.getNode(), `The resource "${resource}" is not known!`);
 			}
 
+			console.log('[Paywise.node] Operation completed successfully');
 			returnData.push({ json: result });
 		} catch (error) {
+			console.error('[Paywise.node] Error during execution:', error);
+			
 			const paywiseError = error as PaywiseApiError;
 			if (paywiseError.response) {
 				throw new NodeApiError(this.getNode(), paywiseError as unknown as JsonObject);

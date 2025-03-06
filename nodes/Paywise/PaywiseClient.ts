@@ -18,11 +18,50 @@ export class PaywiseClient {
 		helpers: IExecuteFunctions | ILoadOptionsFunctions | IHookFunctions,
 	) {
 		this.credentials = credentials;
-		this.helpers = helpers as IPaywiseHelpers;
+		
+		// Check if helpers has requestWithAuthentication method using type assertion
+		if (typeof (helpers as any).requestWithAuthentication === 'function') {
+			this.helpers = helpers as IPaywiseHelpers;
+		} else {
+			// If not, for n8n compatibility, try binding the method from the prototype
+			console.log('[PaywiseClient] Helpers object structure:', 
+				JSON.stringify({
+					hasHelpers: !!helpers,
+					hasRequestWithAuth: !!(helpers && 'requestWithAuthentication' in helpers),
+					helperKeys: helpers ? Object.keys(helpers) : []
+				})
+			);
+			
+			// Log function details if it exists
+			if (helpers && 'requestWithAuthentication' in helpers) {
+				console.log('[PaywiseClient] requestWithAuthentication is:', 
+					typeof (helpers as any).requestWithAuthentication
+				);
+			}
+			
+			// Try to use the helper as is, but with a warning
+			console.warn('[PaywiseClient] Helper object may not be properly structured - using as is');
+			this.helpers = helpers as IPaywiseHelpers;
+		}
+		
+		console.log('[PaywiseClient] Constructor called with credentials:', 
+			JSON.stringify({
+				baseUrl: credentials.baseUrl,
+				hasCredentials: !!credentials,
+				hasHelpers: !!helpers,
+				hasRequestWithAuth: !!(this.helpers && typeof (this.helpers as any).requestWithAuthentication === 'function')
+			})
+		);
 	}
 
 	// Claims
 	async createClaim(claimData: IDataObject): Promise<JsonObject> {
+		console.log('[PaywiseClient] createClaim called with data:', JSON.stringify({
+			dataType: typeof claimData,
+			isEmpty: Object.keys(claimData).length === 0,
+			hasDebtorId: 'debtorId' in claimData
+		}));
+
 		const options: IHttpRequestOptions = {
 			method: 'POST',
 			url: `${this.credentials.baseUrl}/claims/`,
@@ -33,13 +72,18 @@ export class PaywiseClient {
 			body: claimData,
 		};
 
-		const response = await this.helpers.requestWithAuthentication.call(
-			this.helpers,
-			'paywiseApi',
-			options,
-		);
-
-		return JSON.parse(response);
+		try {
+			const response = await this.helpers.requestWithAuthentication.call(
+				this.helpers,
+				'paywiseApi',
+				options,
+			);
+			console.log('[PaywiseClient] createClaim response received');
+			return JSON.parse(response);
+		} catch (error) {
+			console.error('[PaywiseClient] createClaim error:', error);
+			throw error;
+		}
 	}
 
 	async releaseClaim(claimId: string): Promise<JsonObject> {
@@ -83,6 +127,14 @@ export class PaywiseClient {
 	}
 
 	async listClaims(limit: number = 10, offset: number = 0): Promise<JsonObject> {
+		console.log('[PaywiseClient] listClaims called with:', { limit, offset });
+		
+		// Verify the helpers object has the required method
+		if (!this.helpers || typeof (this.helpers as any).requestWithAuthentication !== 'function') {
+			console.error('[PaywiseClient] Missing required requestWithAuthentication method on helpers object');
+			throw new Error('Missing required helper methods for API authentication');
+		}
+		
 		const options: IHttpRequestOptions = {
 			method: 'GET',
 			url: `${this.credentials.baseUrl}/claims/`,
@@ -95,13 +147,25 @@ export class PaywiseClient {
 			},
 		};
 
-		const response = await this.helpers.requestWithAuthentication.call(
-			this.helpers,
-			'paywiseApi',
-			options,
-		);
-
-		return JSON.parse(response);
+		try {
+			console.log('[PaywiseClient] Making authenticated request to /claims/');
+			const response = await this.helpers.requestWithAuthentication.call(
+				this.helpers,
+				'paywiseApi',
+				options,
+			);
+			console.log('[PaywiseClient] listClaims response received');
+			return JSON.parse(response);
+		} catch (error) {
+			console.error('[PaywiseClient] listClaims error:', error);
+			
+			// Provide more details if the error is related to the requestWithAuthentication method
+			if (error instanceof TypeError && error.message.includes('requestWithAuthentication')) {
+				throw new Error(`Authentication method error: ${error.message}. Helper structure may be incorrect.`);
+			}
+			
+			throw error;
+		}
 	}
 
 	async uploadClaimDocument(
@@ -176,6 +240,14 @@ export class PaywiseClient {
 	}
 
 	async listDebtors(limit: number = 10, offset: number = 0): Promise<JsonObject> {
+		console.log('[PaywiseClient] listDebtors called with:', { limit, offset });
+		
+		// Verify the helpers object has the required method
+		if (!this.helpers || typeof (this.helpers as any).requestWithAuthentication !== 'function') {
+			console.error('[PaywiseClient] Missing required requestWithAuthentication method on helpers object');
+			throw new Error('Missing required helper methods for API authentication');
+		}
+		
 		const options: IHttpRequestOptions = {
 			method: 'GET',
 			url: `${this.credentials.baseUrl}/debtors/`,
@@ -188,13 +260,25 @@ export class PaywiseClient {
 			},
 		};
 
-		const response = await this.helpers.requestWithAuthentication.call(
-			this.helpers,
-			'paywiseApi',
-			options,
-		);
-
-		return JSON.parse(response);
+		try {
+			console.log('[PaywiseClient] Making authenticated request to /debtors/');
+			const response = await this.helpers.requestWithAuthentication.call(
+				this.helpers,
+				'paywiseApi',
+				options,
+			);
+			console.log('[PaywiseClient] listDebtors response received');
+			return JSON.parse(response);
+		} catch (error) {
+			console.error('[PaywiseClient] listDebtors error:', error);
+			
+			// Provide more details if the error is related to the requestWithAuthentication method
+			if (error instanceof TypeError && error.message.includes('requestWithAuthentication')) {
+				throw new Error(`Authentication method error: ${error.message}. Helper structure may be incorrect.`);
+			}
+			
+			throw error;
+		}
 	}
 
 	// Helper methods

@@ -1,6 +1,5 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { PaywiseClient } from '../../../PaywiseClient';
 
 // Define operation field properties
 export const releaseClaimFields: INodeProperties[] = [
@@ -28,11 +27,40 @@ export function mapReleaseClaimParams(this: IExecuteFunctions): { claimId: strin
 }
 
 export async function releaseClaim(this: IExecuteFunctions): Promise<JsonObject> {
-	// Map parameters
-	const { claimId } = mapReleaseClaimParams.call(this);
+	console.log('[releaseClaim] operation function called');
 	
-	// Use PaywiseClient to release the claim
-	const credentials = await this.getCredentials('paywiseApi');
-	const client = new PaywiseClient(credentials, this);
-	return client.releaseClaim(claimId);
+	try {
+		// Map parameters
+		const { claimId } = mapReleaseClaimParams.call(this);
+		console.log('[releaseClaim] Parameters mapped:', { claimId });
+		
+		// Make the API request directly
+		console.log('[releaseClaim] Getting credentials and preparing request');
+		const credentials = await this.getCredentials('paywiseApi');
+		
+		const options = {
+			method: 'PATCH',
+			url: `${credentials.baseUrl}/claims/${claimId}/`,
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+			},
+			body: {
+				submission_state: 'released',
+			},
+		};
+		
+		console.log('[releaseClaim] Making authenticated API request');
+		const response = await this.helpers.requestWithAuthentication.call(
+			this,
+			'paywiseApi',
+			options,
+		);
+		
+		console.log('[releaseClaim] Response received successfully');
+		return JSON.parse(response);
+	} catch (error) {
+		console.error('[releaseClaim] Error:', error);
+		throw error;
+	}
 } 

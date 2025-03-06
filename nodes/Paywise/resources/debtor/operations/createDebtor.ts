@@ -1,6 +1,5 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { PaywiseClient } from '../../../PaywiseClient';
 import { IDebtorData, IAddress, ICommunicationChannel, IBankAccount, IMetadata, IEvent, IPerson, IOrganization } from '../debtor.interfaces';
 
 // Define operation field properties
@@ -641,11 +640,42 @@ export function mapToDebtorData(this: IExecuteFunctions): IDebtorData {
 }
 
 export async function createDebtor(this: IExecuteFunctions): Promise<JsonObject> {
-	// Map node parameters to debtor data
-	const debtorData = mapToDebtorData.call(this);
-
-	// Use PaywiseClient to create the debtor
-	const credentials = await this.getCredentials('paywiseApi');
-	const client = new PaywiseClient(credentials, this);
-	return client.createDebtor(debtorData);
+	console.log('[createDebtor] operation function called');
+	
+	try {
+		// Map node parameters to debtor data
+		const debtorData = mapToDebtorData.call(this);
+		console.log('[createDebtor] Data mapped:', { 
+			hasYourReference: 'your_reference' in debtorData,
+			hasPersonOrOrg: !!(debtorData.person || debtorData.organization),
+			addressCount: debtorData.addresses?.length || 0
+		});
+		
+		// Make the API request directly
+		console.log('[createDebtor] Getting credentials and preparing request');
+		const credentials = await this.getCredentials('paywiseApi');
+		
+		const options = {
+			method: 'POST',
+			url: `${credentials.baseUrl}/debtors/`,
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+			},
+			body: debtorData,
+		};
+		
+		console.log('[createDebtor] Making authenticated API request');
+		const response = await this.helpers.requestWithAuthentication.call(
+			this,
+			'paywiseApi',
+			options,
+		);
+		
+		console.log('[createDebtor] Response received successfully');
+		return JSON.parse(response);
+	} catch (error) {
+		console.error('[createDebtor] Error:', error);
+		throw error;
+	}
 } 

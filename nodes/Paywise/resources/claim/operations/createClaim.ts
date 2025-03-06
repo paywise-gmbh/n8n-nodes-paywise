@@ -1,6 +1,5 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { PaywiseClient } from '../../../PaywiseClient';
 import { IClaimData, IClaimItem, IAdditionalCharge, IPayment } from '../claim.interfaces';
 
 // Define operation field properties
@@ -474,11 +473,41 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 }
 
 export async function createClaim(this: IExecuteFunctions): Promise<JsonObject> {
-	// Map node parameters to claim data
-	const claimData = mapToClaimData.call(this);
-
-	// Use PaywiseClient to create the claim
-	const credentials = await this.getCredentials('paywiseApi');
-	const client = new PaywiseClient(credentials, this);
-	return client.createClaim(claimData);
+	console.log('[createClaim] operation function called');
+	
+	try {
+		// Map node parameters to claim data
+		const claimData = mapToClaimData.call(this);
+		console.log('[createClaim] Data mapped:', { 
+			hasDebtorId: 'debtorId' in claimData,
+			hasReference: 'reference' in claimData
+		});
+		
+		// Make the API request directly
+		console.log('[createClaim] Getting credentials and preparing request');
+		const credentials = await this.getCredentials('paywiseApi');
+		
+		const options = {
+			method: 'POST',
+			url: `${credentials.baseUrl}/claims/`,
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+			},
+			body: claimData,
+		};
+		
+		console.log('[createClaim] Making authenticated API request');
+		const response = await this.helpers.requestWithAuthentication.call(
+			this,
+			'paywiseApi',
+			options,
+		);
+		
+		console.log('[createClaim] Response received successfully');
+		return JSON.parse(response);
+	} catch (error) {
+		console.error('[createClaim] Error:', error);
+		throw error;
+	}
 } 

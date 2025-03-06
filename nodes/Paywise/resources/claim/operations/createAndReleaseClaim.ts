@@ -1,8 +1,8 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { PaywiseClient } from '../../../PaywiseClient';
 import { IClaimData } from '../claim.interfaces';
 import { createClaimFields, mapToClaimData } from './createClaim';
+import FormData from 'form-data';
 
 // Define operation field properties, reusing the same fields as createClaim
 export const createAndReleaseClaimFields: INodeProperties[] = [
@@ -48,6 +48,30 @@ export const createAndReleaseClaimFields: INodeProperties[] = [
 ];
 
 /**
+ * Helper function to determine content type from file name
+ */
+function getContentType(fileName: string): string {
+	const fileExtension = fileName.split('.').pop()?.toLowerCase();
+	switch (fileExtension) {
+		case 'pdf':
+			return 'application/pdf';
+		case 'jpg':
+		case 'jpeg':
+			return 'image/jpeg';
+		case 'png':
+			return 'image/png';
+		case 'docx':
+			return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+		case 'doc':
+			return 'application/msword';
+		case 'txt':
+			return 'text/plain';
+		default:
+			return 'application/octet-stream';
+	}
+}
+
+/**
  * Maps parameters for document uploads
  */
 export function mapDocuments(this: IExecuteFunctions): Array<{ binaryProperty: string; fileName: string }> {
@@ -74,39 +98,116 @@ export function mapDocuments(this: IExecuteFunctions): Array<{ binaryProperty: s
 }
 
 export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<JsonObject> {
-	// Map node parameters to claim data
-	const claimData = mapToClaimData.call(this);
-	const documents = mapDocuments.call(this);
+	console.log('[createAndReleaseClaim] operation function called');
+	
+	try {
+		// Map node parameters to claim data and get document info
+		const claimData = mapToClaimData.call(this);
+		const documents = mapDocuments.call(this);
+		
+		console.log('[createAndReleaseClaim] Data mapped:', {
+			hasDebtorId: 'debtorId' in claimData,
+			documentCount: documents.length
+		});
+		
+		// Make the API request directly to create the claim
+		console.log('[createAndReleaseClaim] Getting credentials and preparing request');
+		const credentials = await this.getCredentials('paywiseApi');
+		
+		const createOptions = {
+			method: 'POST',
+			url: `${credentials.baseUrl}/claims/`,
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+			},
+			body: claimData,
+		};
+		
+		// First, create the claim
+		console.log('[createAndReleaseClaim] Making authenticated API request to create claim');
+		const createResponse = await this.helpers.requestWithAuthentication.call(
+			this,
+			'paywiseApi',
+			createOptions,
+		);
+		
+		console.log('[createAndReleaseClaim] Claim created successfully');
+		const claim = JSON.parse(createResponse);
+		
+		if (!claim.id) {
+			throw new NodeOperationError(this.getNode(), 'Failed to get valid claim ID from create response');
+		}
+		
+		// Upload documents if any
+		for (const doc of documents) {
+			const items = this.getInputData();
+			const item = items[0];
 
-	// Create and release the claim using the client
-	const credentials = await this.getCredentials('paywiseApi');
-	const client = new PaywiseClient(credentials, this);
-	const claim = await client.createClaim(claimData);
+			if (!item.binary || !item.binary[doc.binaryProperty]) {
+				throw new NodeOperationError(
+					this.getNode(),
+					`No binary data property "${doc.binaryProperty}" exists on item!`,
+				);
+			}
 
-	if (!claim.id) {
-		throw new NodeOperationError(this.getNode(), 'Failed to get valid claim ID from create response');
-	}
+			const binaryData = item.binary[doc.binaryProperty];
+			const fileName = doc.fileName || binaryData.fileName || 'document.pdf';
+			const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(0, doc.binaryProperty);
+			const contentType = getContentType(fileName);
 
-	// Upload documents if any
-	for (const doc of documents) {
-		const items = this.getInputData();
-		const item = items[0];
-
-		if (!item.binary || !item.binary[doc.binaryProperty]) {
-			throw new NodeOperationError(
-				this.getNode(),
-				`No binary data property "${doc.binaryProperty}" exists on item!`,
+			// Create a multipart form
+			const formData = new FormData();
+			formData.append('file', binaryDataBuffer, {
+				filename: fileName,
+				contentType: contentType,
+			});
+			
+			// Get the form headers
+			const formHeaders = formData.getHeaders();
+			
+			const uploadOptions = {
+				method: 'POST',
+				url: `${credentials.baseUrl}/claims/${claim.id}/documents/`,
+				headers: {
+					...formHeaders,
+					'Accept': 'application/json',
+				},
+				body: formData,
+			};
+			
+			console.log(`[createAndReleaseClaim] Uploading document: ${fileName}`);
+			await this.helpers.requestWithAuthentication.call(
+				this,
+				'paywiseApi',
+				uploadOptions,
 			);
 		}
-
-		const binaryData = item.binary[doc.binaryProperty];
-		const fileName = doc.fileName || binaryData.fileName || 'document.pdf';
-		const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(0, doc.binaryProperty);
-		const contentType = client.getContentType(fileName);
-
-		await client.uploadClaimDocument(claim.id as string, binaryDataBuffer, fileName, contentType);
+		
+		// Finally, release the claim
+		const releaseOptions = {
+			method: 'PATCH',
+			url: `${credentials.baseUrl}/claims/${claim.id}/`,
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+			},
+			body: {
+				submission_state: 'released',
+			},
+		};
+		
+		console.log('[createAndReleaseClaim] Releasing claim');
+		const releaseResponse = await this.helpers.requestWithAuthentication.call(
+			this,
+			'paywiseApi',
+			releaseOptions,
+		);
+		
+		console.log('[createAndReleaseClaim] Claim released successfully');
+		return JSON.parse(releaseResponse);
+	} catch (error) {
+		console.error('[createAndReleaseClaim] Error:', error);
+		throw error;
 	}
-
-	// Release the claim
-	return client.releaseClaim(claim.id as string);
 } 

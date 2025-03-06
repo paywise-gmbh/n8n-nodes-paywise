@@ -1,6 +1,5 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { PaywiseClient } from '../../../PaywiseClient';
 
 // Define operation field properties
 export const getDebtorFields: INodeProperties[] = [
@@ -28,11 +27,36 @@ export function mapGetDebtorParams(this: IExecuteFunctions): { debtorId: string 
 }
 
 export async function getDebtor(this: IExecuteFunctions): Promise<JsonObject> {
-	// Map parameters
-	const { debtorId } = mapGetDebtorParams.call(this);
+	console.log('[getDebtor] operation function called');
 	
-	// Use PaywiseClient to get the debtor
-	const credentials = await this.getCredentials('paywiseApi');
-	const client = new PaywiseClient(credentials, this);
-	return client.getDebtor(debtorId);
+	try {
+		// Map parameters
+		const { debtorId } = mapGetDebtorParams.call(this);
+		console.log('[getDebtor] Parameters mapped:', { debtorId });
+		
+		// Make the API request directly
+		console.log('[getDebtor] Getting credentials and preparing request');
+		const credentials = await this.getCredentials('paywiseApi');
+		
+		const options = {
+			method: 'GET',
+			url: `${credentials.baseUrl}/debtors/${debtorId}/`,
+			headers: {
+				'Accept': 'application/json',
+			},
+		};
+		
+		console.log('[getDebtor] Making authenticated API request');
+		const response = await this.helpers.requestWithAuthentication.call(
+			this,
+			'paywiseApi',
+			options,
+		);
+		
+		console.log('[getDebtor] Response received successfully');
+		return JSON.parse(response);
+	} catch (error) {
+		console.error('[getDebtor] Error:', error);
+		throw error;
+	}
 } 

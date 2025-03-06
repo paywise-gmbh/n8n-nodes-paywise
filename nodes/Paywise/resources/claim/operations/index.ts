@@ -7,22 +7,22 @@ import { listClaims, listClaimsFields } from './listClaims';
 import { uploadDocument, uploadDocumentFields } from './uploadDocument';
 import { INodeProperties } from 'n8n-workflow';
 
-// Export operations
+// Export operations - use string keys to ensure operations can be accessed using string operation parameter
 export const claimOperations: IResourceFunctions = {
-	createClaim,
-	releaseClaim,
-	createAndReleaseClaim,
-	getClaim,
-	listClaims,
-	uploadDocument,
+	'createClaim': createClaim,
+	'releaseClaim': releaseClaim,
+	'createAndReleaseClaim': createAndReleaseClaim,
+	'getClaim': getClaim,
+	'listClaims': listClaims,
+	'uploadDocument': uploadDocument,
 };
 
 // Export operation fields
 export const claimOperationFields: Record<string, INodeProperties[]> = {
-	createClaim: createClaimFields,
-	releaseClaim: releaseClaimFields,
-	createAndReleaseClaim: createAndReleaseClaimFields,
-	getClaim: getClaimFields,
-	listClaims: listClaimsFields,
-	uploadDocument: uploadDocumentFields,
+	'createClaim': createClaimFields,
+	'releaseClaim': releaseClaimFields,
+	'createAndReleaseClaim': createAndReleaseClaimFields,
+	'getClaim': getClaimFields,
+	'listClaims': listClaimsFields,
+	'uploadDocument': uploadDocumentFields,
 }; 
