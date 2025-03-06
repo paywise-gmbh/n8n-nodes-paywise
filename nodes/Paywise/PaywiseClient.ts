@@ -136,6 +136,67 @@ export class PaywiseClient {
 		return JSON.parse(response);
 	}
 
+	// Debtor methods
+	async createDebtor(debtorData: IDataObject): Promise<JsonObject> {
+		const options: IHttpRequestOptions = {
+			method: 'POST',
+			url: `${this.credentials.baseUrl}/debtors/`,
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+			},
+			body: debtorData,
+		};
+
+		const response = await this.helpers.requestWithAuthentication.call(
+			this.helpers,
+			'paywiseApi',
+			options,
+		);
+
+		return JSON.parse(response);
+	}
+
+	async getDebtor(debtorId: string): Promise<JsonObject> {
+		const options: IHttpRequestOptions = {
+			method: 'GET',
+			url: `${this.credentials.baseUrl}/debtors/${debtorId}/`,
+			headers: {
+				'Accept': 'application/json',
+			},
+		};
+
+		const response = await this.helpers.requestWithAuthentication.call(
+			this.helpers,
+			'paywiseApi',
+			options,
+		);
+
+		return JSON.parse(response);
+	}
+
+	async listDebtors(limit: number = 10, offset: number = 0): Promise<JsonObject> {
+		const options: IHttpRequestOptions = {
+			method: 'GET',
+			url: `${this.credentials.baseUrl}/debtors/`,
+			headers: {
+				'Accept': 'application/json',
+			},
+			qs: {
+				limit,
+				offset,
+			},
+		};
+
+		const response = await this.helpers.requestWithAuthentication.call(
+			this.helpers,
+			'paywiseApi',
+			options,
+		);
+
+		return JSON.parse(response);
+	}
+
 	// Helper methods
 	getContentType(fileName: string): string {
 		const fileExtension = fileName.split('.').pop()?.toLowerCase();
