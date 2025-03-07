@@ -35,6 +35,7 @@ export class Paywise implements INodeType {
 		],
 		documentationUrl: 'https://api.paywise.org/v1/docs/',
 		properties: [
+			// Resource selector
 			{
 				displayName: 'Resource',
 				name: 'resource',
@@ -56,9 +57,11 @@ export class Paywise implements INodeType {
 				],
 				default: 'debtor',
 			},
+			// Operations for each resource
 			...claimDescription.operations,
 			...debtorDescription.operations,
 			...infoDescription.operations,
+			// Fields for each operation
 			...claimDescription.properties,
 			...debtorDescription.properties,
 			...infoDescription.properties,

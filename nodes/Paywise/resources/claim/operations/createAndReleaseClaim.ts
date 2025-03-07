@@ -1,13 +1,13 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
 import { IClaimData } from '../claim.interfaces';
-import { createClaimFields, mapToClaimData } from './createClaim';
+import { createClaimFields, mapToClaimData, validateClaimData } from './createClaim';
 import FormData from 'form-data';
 
-// Define operation field properties, reusing the same fields as createClaim
+// Define operation field properties specific to createAndReleaseClaim
+// We'll reuse the same claim data input logic from createClaim, but add document fields
 export const createAndReleaseClaimFields: INodeProperties[] = [
-	...createClaimFields,
-	// Additional fields specific to createAndReleaseClaim
+	// Only include the Documents field which is specific to createAndReleaseClaim
 	{
 		displayName: 'Documents',
 		name: 'documents',
@@ -20,6 +20,7 @@ export const createAndReleaseClaimFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
+				resource: ['claim'],
 			},
 		},
 		options: [
@@ -72,9 +73,51 @@ function getContentType(fileName: string): string {
 }
 
 /**
- * Maps parameters for document uploads
+ * Validates document parameters
  */
-export function mapDocuments(this: IExecuteFunctions): Array<{ binaryProperty: string; fileName: string }> {
+function validateDocuments(this: IExecuteFunctions, documents: Array<{ binary_property: string; file_name: string }>): void {
+	if (!documents || documents.length === 0) {
+		return; // No documents to validate
+	}
+	
+	documents.forEach((doc, index) => {
+		if (!doc.binary_property) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Document #${index + 1} is missing a binary property name`
+			);
+		}
+		
+		// Check if the binary property exists
+		const items = this.getInputData();
+		const item = items[0];
+
+		if (!item.binary || !item.binary[doc.binary_property]) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`No binary data property "${doc.binary_property}" exists on item!`
+			);
+		}
+		
+		// Check file type if a filename is provided
+		if (doc.file_name) {
+			const ext = doc.file_name.split('.').pop()?.toLowerCase();
+			const supportedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'txt'];
+			
+			if (ext && !supportedExtensions.includes(ext)) {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Document #${index + 1} has unsupported file extension: ${ext}. Supported extensions: ${supportedExtensions.join(', ')}`
+				);
+			}
+		}
+	});
+}
+
+/**
+ * Maps document parameters
+ */
+export function mapDocuments(this: IExecuteFunctions): Array<{ binary_property: string; file_name: string }> {
 	const inputType = this.getNodeParameter('inputType', 0) as string;
 	if (inputType !== 'fields') {
 		return [];
@@ -92,8 +135,8 @@ export function mapDocuments(this: IExecuteFunctions): Array<{ binaryProperty: s
 	}
 
 	return documentsCollection.documentsValues.map(doc => ({
-		binaryProperty: doc.binary_property,
-		fileName: doc.file_name,
+		binary_property: doc.binary_property,
+		file_name: doc.file_name,
 	}));
 }
 
@@ -105,10 +148,15 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 		const claimData = mapToClaimData.call(this);
 		const documents = mapDocuments.call(this);
 		
-		console.log('[createAndReleaseClaim] Data mapped:', {
-			hasDebtorId: 'debtorId' in claimData,
-			documentCount: documents.length
-		});
+		console.log('[createAndReleaseClaim] Data mapped, validating...');
+		
+		// Validate claim data using imported function
+		validateClaimData.call(this, claimData);
+		
+		// Validate documents
+		validateDocuments.call(this, documents);
+		
+		console.log('[createAndReleaseClaim] Data validated successfully');
 		
 		// Make the API request directly to create the claim
 		console.log('[createAndReleaseClaim] Getting credentials and preparing request');
@@ -144,16 +192,16 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 			const items = this.getInputData();
 			const item = items[0];
 
-			if (!item.binary || !item.binary[doc.binaryProperty]) {
+			if (!item.binary || !item.binary[doc.binary_property]) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`No binary data property "${doc.binaryProperty}" exists on item!`,
+					`No binary data property "${doc.binary_property}" exists on item!`,
 				);
 			}
 
-			const binaryData = item.binary[doc.binaryProperty];
-			const fileName = doc.fileName || binaryData.fileName || 'document.pdf';
-			const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(0, doc.binaryProperty);
+			const binaryData = item.binary[doc.binary_property];
+			const fileName = doc.file_name || binaryData.fileName || 'document.pdf';
+			const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(0, doc.binary_property);
 			const contentType = getContentType(fileName);
 
 			// Create a multipart form

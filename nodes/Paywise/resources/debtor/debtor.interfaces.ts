@@ -17,20 +17,6 @@ export interface IBankAccount {
 	bic?: string;
 }
 
-export interface IMetadata {
-	type: string;
-	value: string;
-}
-
-export interface IEvent {
-	type: string;
-	title: string;
-	occurence: string;
-	your_reference?: string;
-	description?: string;
-	location?: string;
-}
-
 export interface IPerson {
 	salutation?: string;
 	first_name: string;
@@ -51,6 +37,4 @@ export interface IDebtorData extends IDataObject {
 	addresses: IAddress[];
 	communication_channels?: ICommunicationChannel[];
 	bank_accounts?: IBankAccount[];
-	metadata?: IMetadata[];
-	events?: IEvent[];
 } 

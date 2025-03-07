@@ -59,8 +59,41 @@ const operations: INodeProperties[] = [
 // Create the properties array by adding operation-specific fields with display conditions
 const properties: INodeProperties[] = [];
 
-// Add all operation fields with proper display conditions
+// Special handling for createClaim fields - make them available for createAndReleaseClaim too
+claimOperationFields['createClaim'].forEach((field) => {
+	// Clone the field to not modify the original
+	const newField = { ...field };
+	
+	// Add or update displayOptions to show for both createClaim and createAndReleaseClaim
+	newField.displayOptions = newField.displayOptions || {};
+	newField.displayOptions.show = newField.displayOptions.show || {};
+	newField.displayOptions.show.operation = newField.displayOptions.show.operation || [];
+	
+	// If operation is already conditional, make sure it's an array
+	if (typeof newField.displayOptions.show.operation === 'string') {
+		newField.displayOptions.show.operation = [newField.displayOptions.show.operation];
+	}
+	
+	// Show for both operations
+	if (!newField.displayOptions.show.operation.includes('createClaim')) {
+		newField.displayOptions.show.operation.push('createClaim');
+	}
+	if (!newField.displayOptions.show.operation.includes('createAndReleaseClaim')) {
+		newField.displayOptions.show.operation.push('createAndReleaseClaim');
+	}
+	
+	// Add resource condition 
+	newField.displayOptions.show.resource = ['claim'];
+	
+	// Add to properties array
+	properties.push(newField);
+});
+
+// Add all fields for other operations with proper display conditions
 Object.entries(claimOperationFields).forEach(([operationName, fields]) => {
+	// Skip createClaim since we already handled it
+	if (operationName === 'createClaim') return;
+	
 	fields.forEach((field) => {
 		// Clone the field to not modify the original
 		const newField = { ...field };

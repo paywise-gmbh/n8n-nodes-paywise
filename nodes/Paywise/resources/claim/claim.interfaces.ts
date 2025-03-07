@@ -5,6 +5,20 @@ export interface IAmount {
 	currency: string;
 }
 
+export interface IMetadata {
+	type: string;
+	value: string;
+}
+
+export interface IEvent {
+	title: string;
+	occurence: string;
+	your_reference?: string;
+	description?: string;
+	type?: string;
+	location?: string;
+}
+
 export interface IClaimItem {
 	description: string;
 	quantity: number;
@@ -13,16 +27,21 @@ export interface IClaimItem {
 }
 
 export interface IAdditionalCharge {
-	type: string;
-	reference: string;
-	description: string;
+	your_reference?: string;
+	document_reference?: string;
+	subject_matter: string;
+	occurence_date?: string;
+	document_date?: string;
+	due_date?: string;
 	amount: IAmount;
+	events?: IEvent[];
 }
 
 export interface IPayment {
-	reference: string;
+	your_reference: string;
 	amount: IAmount;
-	date: string;
+	value_date: string;
+	metadata?: IMetadata[];
 }
 
 export interface IReleaseOptions {
@@ -32,13 +51,24 @@ export interface IReleaseOptions {
 }
 
 export interface IClaimData extends IDataObject {
-	debtorId: string;
-	reference: string;
-	amount: number;
-	dueDate: string;
-	description: string;
+	debtor: string;
+	your_reference: string;
+	document_reference?: string;
+	subject_matter: string;
+	occurence_date?: string;
+	document_date?: string;
+	due_date: string;
+	reminder_date?: string;
+	delay_date?: string;
+	total_claim_amount: IAmount;
+	main_claim_amount: IAmount;
 	items?: IClaimItem[];
 	additional_charges_amount?: IAmount;
 	additional_charges?: IAdditionalCharge[];
 	payments?: IPayment[];
+	starting_approach: string;
+	claim_disputed: boolean;
+	obligation_fulfilled: boolean;
+	metadata?: IMetadata[];
+	events?: IEvent[];
 } 
