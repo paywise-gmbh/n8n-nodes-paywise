@@ -1,7 +1,8 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
 import { IClaimData } from '../claim.interfaces';
-import { createClaimFields, mapToClaimData, validateClaimData } from './createClaim';
+import { createClaim, createClaimFields, mapToClaimData, validateClaimData } from './createClaim';
+import { mapUploadDocumentParams } from './uploadDocument';
 import FormData from 'form-data';
 
 // Define operation field properties specific to createAndReleaseClaim
@@ -52,6 +53,8 @@ export const createAndReleaseClaimFields: INodeProperties[] = [
  * Helper function to determine content type from file name
  */
 function getContentType(fileName: string): string {
+	if (!fileName) return 'application/octet-stream';
+	
 	const fileExtension = fileName.split('.').pop()?.toLowerCase();
 	switch (fileExtension) {
 		case 'pdf':
@@ -90,8 +93,14 @@ function validateDocuments(this: IExecuteFunctions, documents: Array<{ binary_pr
 		
 		// Check if the binary property exists
 		const items = this.getInputData();
+		if (!items || items.length === 0) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'No input items found'
+			);
+		}
+		
 		const item = items[0];
-
 		if (!item.binary || !item.binary[doc.binary_property]) {
 			throw new NodeOperationError(
 				this.getNode(),
@@ -118,49 +127,254 @@ function validateDocuments(this: IExecuteFunctions, documents: Array<{ binary_pr
  * Maps document parameters
  */
 export function mapDocuments(this: IExecuteFunctions): Array<{ binary_property: string; file_name: string }> {
-	const inputType = this.getNodeParameter('inputType', 0) as string;
-	if (inputType !== 'fields') {
+	try {
+		console.log('[mapDocuments] Starting to map document parameters');
+		const inputType = this.getNodeParameter('inputType', 0) as string;
+		console.log(`[mapDocuments] Input type is: ${inputType}`);
+		
+		if (inputType !== 'fields') {
+			console.log('[mapDocuments] Not using fields input type, returning empty documents array');
+			return [];
+		}
+		
+		// Use a safer approach with try/catch
+		try {
+			console.log('[mapDocuments] Attempting to get documents parameter');
+			
+			// First check if the parameter exists
+			const hasDocumentsParameter = this.getNodeParameter('documents', 0, null) !== null;
+			console.log(`[mapDocuments] Has documents parameter: ${hasDocumentsParameter}`);
+			
+			if (!hasDocumentsParameter) {
+				console.log('[mapDocuments] Documents parameter not found, returning empty array');
+				return [];
+			}
+			
+			const documentsCollection = this.getNodeParameter('documents', 0, { documentsValues: [] }) as {
+				documentsValues: Array<{
+					binary_property: string;
+					file_name: string;
+				}>;
+			};
+			
+			console.log('[mapDocuments] Documents collection retrieved:', {
+				hasCollection: !!documentsCollection,
+				hasDocumentsValues: !!(documentsCollection && documentsCollection.documentsValues),
+				documentsCount: documentsCollection?.documentsValues?.length || 0
+			});
+			
+			if (!documentsCollection || !documentsCollection.documentsValues || documentsCollection.documentsValues.length === 0) {
+				console.log('[mapDocuments] No documents found in collection, returning empty array');
+				return [];
+			}
+			
+			// Map and validate the documents
+			const mappedDocs = documentsCollection.documentsValues.map((doc, index) => {
+				const mapped = {
+					binary_property: doc.binary_property || 'data', // Default to 'data' if missing
+					file_name: doc.file_name || '',
+				};
+				
+				console.log(`[mapDocuments] Mapped document ${index+1}:`, mapped);
+				return mapped;
+			});
+			
+			console.log(`[mapDocuments] Successfully mapped ${mappedDocs.length} documents`);
+			return mappedDocs;
+		} catch (error) {
+			console.error('[mapDocuments] Error accessing documents parameter:', error);
+			return [];
+		}
+	} catch (error) {
+		console.error('[mapDocuments] Error:', error);
 		return [];
 	}
+}
 
-	const documentsCollection = this.getNodeParameter('documents', 0, { documentsValues: [] }) as {
-		documentsValues: Array<{
-			binary_property: string;
-			file_name: string;
-		}>;
+/**
+ * Upload a document to an existing claim
+ */
+async function uploadClaimDocument(
+	this: IExecuteFunctions,
+	claimId: string, 
+	binaryProperty: string, 
+	fileName?: string
+): Promise<JsonObject> {
+	if (!claimId) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'Cannot upload document: Missing claim ID'
+		);
+	}
+	
+	if (!binaryProperty) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'Cannot upload document: Missing binary property name'
+		);
+	}
+	
+	const items = this.getInputData();
+	if (!items || items.length === 0) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'No input items found'
+		);
+	}
+	
+	const item = items[0];
+	if (!item.binary || !item.binary[binaryProperty]) {
+		throw new NodeOperationError(
+			this.getNode(),
+			`No binary data property "${binaryProperty}" exists on item!`,
+		);
+	}
+
+	const binaryData = item.binary[binaryProperty];
+	const finalFileName = fileName || (binaryData && binaryData.fileName) || 'document.pdf';
+	const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(0, binaryProperty);
+	const contentType = getContentType(finalFileName);
+
+	console.log(`[uploadClaimDocument] Preparing to upload document ${finalFileName} (${contentType})`);
+	console.log(`[uploadClaimDocument] Buffer length: ${binaryDataBuffer.length} bytes`);
+	
+	// In n8n, instead of using FormData directly, we need to structure the request differently
+	const credentials = await this.getCredentials('paywiseApi');
+	
+	// Use n8n's built-in multipart/form-data handling
+	const options = {
+		method: 'POST',
+		url: `${credentials.baseUrl}/claims/${claimId}/documents/`,
+		headers: {
+			'Accept': 'application/json',
+		},
+		formData: {
+			// Only include the file field as per API documentation
+			file: {
+				value: binaryDataBuffer,
+				options: {
+					filename: finalFileName,
+					contentType: contentType
+				}
+			}
+		}
 	};
-
-	if (!documentsCollection.documentsValues || documentsCollection.documentsValues.length === 0) {
-		return [];
+	
+	console.log(`[uploadClaimDocument] Sending request to: ${options.url}`);
+	try {
+		console.log('[uploadClaimDocument] Request options:', JSON.stringify({
+			method: options.method,
+			url: options.url,
+			headers: options.headers,
+			hasFormData: !!options.formData,
+			formDataKeys: options.formData ? Object.keys(options.formData) : []
+		}));
+		
+		const response = await this.helpers.requestWithAuthentication.call(
+			this,
+			'paywiseApi',
+			options,
+		);
+		
+		console.log(`[uploadClaimDocument] Document upload successful`);
+		return JSON.parse(response);
+	} catch (error) {
+		console.error(`[uploadClaimDocument] Document upload failed:`, error);
+		// If the error contains response data, log it for debugging
+		if ((error as any).response) {
+			console.error('[uploadClaimDocument] API error response:', (error as any).response);
+		}
+		throw error;
 	}
+}
 
-	return documentsCollection.documentsValues.map(doc => ({
-		binary_property: doc.binary_property,
-		file_name: doc.file_name,
-	}));
+/**
+ * Release an existing claim
+ */
+async function releaseExistingClaim(this: IExecuteFunctions, claimId: string): Promise<JsonObject> {
+	if (!claimId) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'Cannot release claim: Missing claim ID'
+		);
+	}
+	
+	const credentials = await this.getCredentials('paywiseApi');
+	
+	const releaseOptions = {
+		method: 'PATCH',
+		url: `${credentials.baseUrl}/claims/${claimId}/`,
+		headers: {
+			'Content-Type': 'application/json',
+			'Accept': 'application/json',
+		},
+		body: {
+			submission_state: 'released',
+		},
+	};
+	
+	console.log('[releaseExistingClaim] Releasing claim');
+	const releaseResponse = await this.helpers.requestWithAuthentication.call(
+		this,
+		'paywiseApi',
+		releaseOptions,
+	);
+	
+	return JSON.parse(releaseResponse);
 }
 
 export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[createAndReleaseClaim] operation function called');
+	console.log('=====================================================');
+	console.log('[createAndReleaseClaim] OPERATION STARTED');
+	console.log('=====================================================');
 	
 	try {
-		// Map node parameters to claim data and get document info
+		// Log execution context
+		const workflowId = this.getWorkflow().id || 'unknown';
+		console.log(`[createAndReleaseClaim] Context: Workflow ID: ${workflowId}`);
+		
+		// Log input data
+		const inputItems = this.getInputData();
+		console.log(`[createAndReleaseClaim] Input items count: ${inputItems.length}`);
+		if (inputItems.length > 0) {
+			console.log('[createAndReleaseClaim] First input item:', {
+				hasJson: !!inputItems[0].json,
+				hasBinary: !!inputItems[0].binary,
+				binaryProperties: inputItems[0].binary ? Object.keys(inputItems[0].binary) : [],
+				jsonKeys: inputItems[0].json ? Object.keys(inputItems[0].json) : []
+			});
+		}
+		
+		// Step 1: Map node parameters to claim data and get document info
+		console.log('[createAndReleaseClaim] Step 1: Mapping parameters...');
 		const claimData = mapToClaimData.call(this);
+		console.log('[createAndReleaseClaim] Claim data mapped:', {
+			hasClaimData: !!claimData,
+			dataKeys: claimData ? Object.keys(claimData) : [],
+			debtor: claimData?.debtor,
+			yourRef: claimData?.your_reference
+		});
+		
 		const documents = mapDocuments.call(this);
+		console.log('[createAndReleaseClaim] Documents mapped:', {
+			documentCount: documents?.length || 0,
+			documents: documents
+		});
 		
-		console.log('[createAndReleaseClaim] Data mapped, validating...');
-		
-		// Validate claim data using imported function
+		// Step 2: Validate claim data using imported function from createClaim
+		console.log('[createAndReleaseClaim] Step 2: Validating claim data...');
 		validateClaimData.call(this, claimData);
+		console.log('[createAndReleaseClaim] Claim data validated successfully');
 		
-		// Validate documents
+		// Step 3: Validate documents
+		console.log('[createAndReleaseClaim] Step 3: Validating documents...');
 		validateDocuments.call(this, documents);
+		console.log('[createAndReleaseClaim] Documents validated successfully');
 		
-		console.log('[createAndReleaseClaim] Data validated successfully');
-		
-		// Make the API request directly to create the claim
-		console.log('[createAndReleaseClaim] Getting credentials and preparing request');
+		// Step 4: Create the claim (reusing code pattern from createClaim)
+		console.log('[createAndReleaseClaim] Step 4: Creating claim...');
 		const credentials = await this.getCredentials('paywiseApi');
+		console.log('[createAndReleaseClaim] Using API URL:', credentials.baseUrl);
 		
 		const createOptions = {
 			method: 'POST',
@@ -172,8 +386,11 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 			body: claimData,
 		};
 		
-		// First, create the claim
-		console.log('[createAndReleaseClaim] Making authenticated API request to create claim');
+		console.log('[createAndReleaseClaim] Making API request to create claim...');
+		console.log('[createAndReleaseClaim] Request URL:', createOptions.url);
+		console.log('[createAndReleaseClaim] Request method:', createOptions.method);
+		console.log('[createAndReleaseClaim] Request body keys:', Object.keys(createOptions.body));
+		
 		const createResponse = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
@@ -182,80 +399,139 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 		
 		console.log('[createAndReleaseClaim] Claim created successfully');
 		const claim = JSON.parse(createResponse);
+		console.log('[createAndReleaseClaim] Claim response:', {
+			id: claim?.id,
+			status: claim?.status,
+			submissionState: claim?.submission_state,
+			responseKeys: claim ? Object.keys(claim) : []
+		});
 		
-		if (!claim.id) {
+		if (!claim || !claim.id) {
+			console.error('[createAndReleaseClaim] ERROR: Missing claim ID in response:', createResponse);
 			throw new NodeOperationError(this.getNode(), 'Failed to get valid claim ID from create response');
 		}
 		
-		// Upload documents if any
-		for (const doc of documents) {
-			const items = this.getInputData();
-			const item = items[0];
-
-			if (!item.binary || !item.binary[doc.binary_property]) {
-				throw new NodeOperationError(
-					this.getNode(),
-					`No binary data property "${doc.binary_property}" exists on item!`,
-				);
-			}
-
-			const binaryData = item.binary[doc.binary_property];
-			const fileName = doc.file_name || binaryData.fileName || 'document.pdf';
-			const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(0, doc.binary_property);
-			const contentType = getContentType(fileName);
-
-			// Create a multipart form
-			const formData = new FormData();
-			formData.append('file', binaryDataBuffer, {
-				filename: fileName,
-				contentType: contentType,
+		// Step 5: Upload documents if any (using the helper function)
+		if (documents && documents.length > 0) {
+			console.log(`[createAndReleaseClaim] Step 5: Uploading ${documents.length} documents...`);
+			
+			// Log document details for debugging
+			documents.forEach((doc, idx) => {
+				console.log(`[createAndReleaseClaim] Document ${idx+1} details:`, {
+					binaryProperty: doc.binary_property,
+					fileName: doc.file_name || 'Not specified',
+					hasBinary: inputItems[0]?.binary ? !!inputItems[0].binary[doc.binary_property] : false
+				});
 			});
 			
-			// Get the form headers
-			const formHeaders = formData.getHeaders();
-			
-			const uploadOptions = {
-				method: 'POST',
-				url: `${credentials.baseUrl}/claims/${claim.id}/documents/`,
-				headers: {
-					...formHeaders,
-					'Accept': 'application/json',
-				},
-				body: formData,
+			// Keep track of upload success and failures
+			const uploadResults = {
+				success: 0,
+				failed: 0,
+				errors: [] as string[]
 			};
 			
-			console.log(`[createAndReleaseClaim] Uploading document: ${fileName}`);
-			await this.helpers.requestWithAuthentication.call(
-				this,
-				'paywiseApi',
-				uploadOptions,
-			);
+			for (const [index, doc] of documents.entries()) {
+				if (!doc || !doc.binary_property) {
+					console.warn(`[createAndReleaseClaim] Skipping invalid document entry at index ${index}`);
+					uploadResults.failed++;
+					uploadResults.errors.push(`Document ${index+1}: Invalid document entry`);
+					continue;
+				}
+				
+				console.log(`[createAndReleaseClaim] Uploading document ${index+1}/${documents.length}:`, {
+					binaryProperty: doc.binary_property,
+					fileName: doc.file_name || 'Not specified'
+				});
+				
+				try {
+					// Try to access the binary data to verify it exists before upload
+					const items = this.getInputData();
+					const item = items[0];
+					
+					if (!item.binary || !item.binary[doc.binary_property]) {
+						console.error(`[createAndReleaseClaim] No binary data found for property: ${doc.binary_property}`);
+						uploadResults.failed++;
+						uploadResults.errors.push(`Document ${index+1}: No binary data found for property ${doc.binary_property}`);
+						continue;
+					}
+					
+					const uploadResult = await uploadClaimDocument.call(
+						this,
+						claim.id,
+						doc.binary_property,
+						doc.file_name
+					);
+					
+					console.log(`[createAndReleaseClaim] Document ${index+1} uploaded successfully:`, {
+						resultKeys: uploadResult ? Object.keys(uploadResult) : [],
+						id: uploadResult?.id
+					});
+					uploadResults.success++;
+				} catch (uploadError: any) {
+					console.error(`[createAndReleaseClaim] ERROR: Failed to upload document ${index+1}:`, uploadError);
+					uploadResults.failed++;
+					uploadResults.errors.push(`Document ${index+1}: ${uploadError?.message || 'Unknown error'}`);
+					// Continue with other documents even if one fails
+				}
+			}
+			
+			// Log summary of document uploads
+			console.log('[createAndReleaseClaim] Document upload summary:', uploadResults);
+			
+			if (uploadResults.failed > 0 && uploadResults.success === 0) {
+				console.error('[createAndReleaseClaim] WARNING: All document uploads failed!');
+				// We'll continue with releasing the claim even if document uploads failed
+			}
+		} else {
+			console.log('[createAndReleaseClaim] Step 5: No documents to upload, skipping');
 		}
 		
-		// Finally, release the claim
-		const releaseOptions = {
-			method: 'PATCH',
-			url: `${credentials.baseUrl}/claims/${claim.id}/`,
-			headers: {
-				'Content-Type': 'application/json',
-				'Accept': 'application/json',
-			},
-			body: {
-				submission_state: 'released',
-			},
-		};
+		// Step 6: Release the claim (using the helper function)
+		console.log('[createAndReleaseClaim] Step 6: Releasing claim...');
+		console.log(`[createAndReleaseClaim] Releasing claim with ID: ${claim.id}`);
 		
-		console.log('[createAndReleaseClaim] Releasing claim');
-		const releaseResponse = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			releaseOptions,
-		);
-		
+		const releasedClaim = await releaseExistingClaim.call(this, claim.id);
 		console.log('[createAndReleaseClaim] Claim released successfully');
-		return JSON.parse(releaseResponse);
-	} catch (error) {
-		console.error('[createAndReleaseClaim] Error:', error);
+		console.log('[createAndReleaseClaim] Released claim details:', {
+			id: releasedClaim?.id,
+			status: releasedClaim?.status,
+			submissionState: releasedClaim?.submission_state,
+			responseKeys: releasedClaim ? Object.keys(releasedClaim) : []
+		});
+		
+		console.log('=====================================================');
+		console.log('[createAndReleaseClaim] OPERATION COMPLETED SUCCESSFULLY');
+		console.log('=====================================================');
+		
+		return releasedClaim;
+	} catch (error: any) {
+		console.error('=====================================================');
+		console.error('[createAndReleaseClaim] OPERATION FAILED WITH ERROR:');
+		console.error('=====================================================');
+		console.error('[createAndReleaseClaim] Error details:', error);
+		
+		// Get more meaningful error information if available
+		const errorMessage = error?.message || 'Unknown error';
+		const errorCode = error?.code || 'N/A';
+		const errorStack = error?.stack || 'No stack trace available';
+		
+		console.error('[createAndReleaseClaim] Error message:', errorMessage);
+		console.error('[createAndReleaseClaim] Error code:', errorCode);
+		console.error('[createAndReleaseClaim] Stack trace:', errorStack);
+		
+		// Log API response details if it's an API error
+		if (error?.response) {
+			try {
+				console.error('[createAndReleaseClaim] API response status:', error.response.statusCode);
+				console.error('[createAndReleaseClaim] API response body:', typeof error.response.body === 'string' 
+					? error.response.body 
+					: JSON.stringify(error.response.body, null, 2));
+			} catch (e) {
+				console.error('[createAndReleaseClaim] Could not parse API error response');
+			}
+		}
+		
 		throw error;
 	}
 } 

@@ -1,6 +1,5 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { PaywiseClient } from '../../../PaywiseClient';
 
 // Define operation field properties
 export const listDebtorsFields: INodeProperties[] = [

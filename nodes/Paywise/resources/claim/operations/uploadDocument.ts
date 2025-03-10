@@ -26,6 +26,8 @@ export const uploadDocumentFields: INodeProperties[] = [
  * Helper function to determine content type from file name
  */
 function getContentType(fileName: string): string {
+	if (!fileName) return 'application/octet-stream';
+	
 	const fileExtension = fileName.split('.').pop()?.toLowerCase();
 	switch (fileExtension) {
 		case 'pdf':
@@ -94,30 +96,38 @@ export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObjec
 		// Map parameters
 		const { claimId, fileName, binaryDataBuffer, contentType } = await mapUploadDocumentParams.call(this);
 		console.log('[uploadDocument] Parameters mapped:', { claimId, fileName, contentType });
+		console.log(`[uploadDocument] Buffer length: ${binaryDataBuffer.length} bytes`);
 		
-		// Make the API request directly
+		// Make the API request using n8n's built-in multipart/form-data handling
 		console.log('[uploadDocument] Getting credentials and preparing request');
 		const credentials = await this.getCredentials('paywiseApi');
 		
-		// Create a multipart form
-		const formData = new FormData();
-		formData.append('file', binaryDataBuffer, {
-			filename: fileName,
-			contentType: contentType,
-		});
-		
-		// Get the form headers
-		const formHeaders = formData.getHeaders();
-		
+		// Use n8n's built-in multipart/form-data handling
 		const options = {
 			method: 'POST',
 			url: `${credentials.baseUrl}/claims/${claimId}/documents/`,
 			headers: {
-				...formHeaders,
 				'Accept': 'application/json',
 			},
-			body: formData,
+			formData: {
+				// Only include the file field as per API documentation
+				file: {
+					value: binaryDataBuffer,
+					options: {
+						filename: fileName,
+						contentType: contentType
+					}
+				}
+			}
 		};
+		
+		console.log('[uploadDocument] Request prepared:', JSON.stringify({
+			method: options.method,
+			url: options.url,
+			headers: options.headers,
+			hasFormData: !!options.formData,
+			formDataKeys: options.formData ? Object.keys(options.formData) : []
+		}));
 		
 		console.log('[uploadDocument] Making authenticated API request');
 		const response = await this.helpers.requestWithAuthentication.call(
@@ -130,6 +140,10 @@ export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObjec
 		return JSON.parse(response);
 	} catch (error) {
 		console.error('[uploadDocument] Error:', error);
+		// If the error contains response data, log it for debugging
+		if ((error as any).response) {
+			console.error('[uploadDocument] API error response:', (error as any).response);
+		}
 		throw error;
 	}
 } 
