@@ -20,27 +20,56 @@ export async function getInfo(this: IExecuteFunctions): Promise<JsonObject> {
 	
 	try {
 		// Get API URL using the getApiUrl function
-		const url = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'info');
+		// First try Case Management API (with trailing slash)
+		let response: any;
+		let error: any;
 		
-		console.log('[getInfo] Using URL:', url);
+		try {
+			const caseManagementUrl = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'info', '');
+			console.log('[getInfo] Using Case Management API URL:', caseManagementUrl);
+			
+			// Make API request
+			const caseManagementOptions = {
+				method: 'GET',
+				url: caseManagementUrl + '/', // Ensure trailing slash
+				headers: {
+					'Accept': 'application/json',
+				},
+			};
+			
+			console.log('[getInfo] Making authenticated API request to Case Management API');
+			response = await this.helpers.requestWithAuthentication.call(
+				this,
+				'paywiseApi',
+				caseManagementOptions,
+			);
+			console.log('[getInfo] Case Management API response received successfully');
+		} catch (e) {
+			console.log('[getInfo] Case Management API request failed, trying Partner API');
+			error = e;
+			
+			// Try Partner API if Case Management API failed
+			const partnerUrl = await getApiUrl.call(this, ApiType.PARTNER, 'info', '');
+			console.log('[getInfo] Using Partner API URL:', partnerUrl);
+			
+			// Make API request
+			const partnerOptions = {
+				method: 'GET',
+				url: partnerUrl + '/', // Ensure trailing slash
+				headers: {
+					'Accept': 'application/json',
+				},
+			};
+			
+			console.log('[getInfo] Making authenticated API request to Partner API');
+			response = await this.helpers.requestWithAuthentication.call(
+				this,
+				'paywiseApi',
+				partnerOptions,
+			);
+			console.log('[getInfo] Partner API response received successfully');
+		}
 		
-		// Make API request
-		const options = {
-			method: 'GET',
-			url,
-			headers: {
-				'Accept': 'application/json',
-			},
-		};
-		
-		console.log('[getInfo] Making authenticated API request');
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			options,
-		);
-		
-		console.log('[getInfo] Response received successfully');
 		return JSON.parse(response);
 	} catch (error) {
 		console.error('[getInfo] Error:', error);

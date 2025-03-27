@@ -52,17 +52,17 @@ export class Paywise implements INodeType {
 						value: 'claim',
 					},
 					{
-						name: 'Company',
-						value: 'company',
-						description: 'Manage companies (Partner API)',
-					},
-					{
 						name: 'Debtor',
 						value: 'debtor',
 					},
 					{
 						name: 'Info',
 						value: 'info',
+					},
+					{
+						name: 'Company',
+						value: 'company',
+						description: 'Manage companies (Partner API)',
 					},
 					{
 						name: 'Token',
