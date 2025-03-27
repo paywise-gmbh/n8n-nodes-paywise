@@ -38,6 +38,11 @@ import {
 	tokenOperationMapping,
 } from './resources/token';
 
+import {
+	userinviteOperations,
+	userinviteOperationMapping,
+} from './resources/userinvite';
+
 // Define a type for the operation function
 type OperationFunction = (this: IExecuteFunctions, index: number) => Promise<JsonObject>;
 
@@ -56,7 +61,7 @@ export class Paywise implements INodeType {
 		displayName: 'Paywise',
 		name: 'paywise',
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
-		icon: 'file:paywise.png',
+		icon: 'file:paywise-logo.svg',
 		group: ['transform'],
 		version: 1,
 		description: 'Consume Paywise API',
@@ -85,10 +90,6 @@ export class Paywise implements INodeType {
 						value: 'claim',
 					},
 					{
-						name: 'Company',
-						value: 'company',
-					},
-					{
 						name: 'Debtor',
 						value: 'debtor',
 					},
@@ -97,12 +98,24 @@ export class Paywise implements INodeType {
 						value: 'info',
 					},
 					{
-						name: 'Token',
-						value: 'token',
+						name: 'Company (Partner API)',
+						value: 'company',
+						description: 'Manage companies via the Partner API',
 					},
 					{
-						name: 'User',
+						name: 'User (Partner API)',
 						value: 'user',
+						description: 'Manage users via the Partner API',
+					},
+					{
+						name: 'User Invite (Partner API)',
+						value: 'userinvite',
+						description: 'Manage user invites via the Partner API',
+					},
+					{
+						name: 'Token (Partner API)',
+						value: 'token',
+						description: 'Manage API tokens via the Partner API',
 					},
 				],
 				default: 'info',
@@ -115,6 +128,7 @@ export class Paywise implements INodeType {
 			...infoOperations,
 			...tokenOperations,
 			...userOperations,
+			...userinviteOperations,
 		],
 	};
 
@@ -134,6 +148,7 @@ export class Paywise implements INodeType {
 			company: companyOperationMapping,
 			user: userOperationMapping,
 			token: tokenOperationMapping,
+			userinvite: userinviteOperationMapping,
 		};
 
 		// Look up the function to execute based on resource and operation

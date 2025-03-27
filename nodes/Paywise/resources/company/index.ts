@@ -6,6 +6,8 @@ import {
 	getCompanyFields,
 	listCompanies,
 	listCompaniesFields,
+	updateCompany,
+	updateCompanyFields,
 } from './operations';
 
 import {
@@ -47,6 +49,12 @@ export const companyOperations = [
 				value: 'list',
 				description: 'List all companies',
 				action: 'List companies',
+			},
+			{
+				name: 'Update',
+				value: 'update',
+				description: 'Update a company',
+				action: 'Update a company',
 			},
 		],
 		default: 'list',
@@ -90,6 +98,19 @@ export const companyOperations = [
 			},
 		},
 	})),
+	
+	// Fields for update operation
+	...updateCompanyFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['update'],
+				resource: ['company'],
+			},
+		},
+	})),
 ];
 
 // Mapping from UI operation values to function implementations
@@ -97,6 +118,7 @@ export const companyOperationMapping = {
 	create: createCompany,
 	get: getCompany,
 	list: listCompanies,
+	update: updateCompany,
 };
 
 // Export operations for direct access
@@ -105,6 +127,7 @@ export {
 	createCompany,
 	getCompany,
 	listCompanies,
+	updateCompany,
 	
 	// Interfaces
 	IAddress,

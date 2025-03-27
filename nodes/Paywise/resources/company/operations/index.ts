@@ -1,6 +1,7 @@
 import { createCompanyFields, createCompany } from './createCompany';
 import { getCompanyFields, getCompany } from './getCompany';
 import { listCompaniesFields, listCompanies } from './listCompanies';
+import { updateCompanyFields, updateCompany } from './updateCompany';
 
 export {
 	createCompanyFields,
@@ -9,4 +10,6 @@ export {
 	getCompany,
 	listCompaniesFields,
 	listCompanies,
+	updateCompanyFields,
+	updateCompany,
 }; 
