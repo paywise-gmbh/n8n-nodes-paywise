@@ -3,26 +3,60 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
-	NodeApiError,
 	NodeOperationError,
 	JsonObject,
 } from 'n8n-workflow';
 
-import { PaywiseApiError } from './interfaces';
-import { claimOperations, claimDescription } from './resources/claim';
-import { debtorOperations, debtorDescription } from './resources/debtor';
-import { infoOperations, infoDescription } from './resources/info';
-import { 
-	operations as newOperations,
-	operationFields,
-} from './resources';
-import { ApiType, getApiUrl } from './apiUtils';
+// Import resource declarations
+import {
+	claimOperations,
+	claimOperationMapping,
+} from './resources/claim';
+
+import {
+	debtorOperations,
+	debtorOperationMapping,
+} from './resources/debtor';
+
+import {
+	infoOperations,
+	infoOperationMapping,
+} from './resources/info';
+
+import {
+	companyOperations,
+	companyOperationMapping,
+} from './resources/company';
+
+import {
+	userOperations,
+	userOperationMapping,
+} from './resources/user';
+
+import {
+	tokenOperations,
+	tokenOperationMapping,
+} from './resources/token';
+
+// Define a type for the operation function
+type OperationFunction = (this: IExecuteFunctions, index: number) => Promise<JsonObject>;
+
+// Define a type for the operation mapping
+interface OperationMapping {
+	[key: string]: OperationFunction;
+}
+
+// Define resource operation mappings type
+interface ResourceMappings {
+	[resource: string]: OperationMapping;
+}
 
 export class Paywise implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Paywise',
 		name: 'paywise',
-		icon: 'file:paywise-logo.svg',
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
+		icon: 'file:paywise.png',
 		group: ['transform'],
 		version: 1,
 		description: 'Consume Paywise API',
@@ -40,7 +74,6 @@ export class Paywise implements INodeType {
 		],
 		documentationUrl: 'https://api.paywise.org/v1/docs/',
 		properties: [
-			// Resource selector
 			{
 				displayName: 'Resource',
 				name: 'resource',
@@ -52,6 +85,10 @@ export class Paywise implements INodeType {
 						value: 'claim',
 					},
 					{
+						name: 'Company',
+						value: 'company',
+					},
+					{
 						name: 'Debtor',
 						value: 'debtor',
 					},
@@ -60,283 +97,68 @@ export class Paywise implements INodeType {
 						value: 'info',
 					},
 					{
-						name: 'Company',
-						value: 'company',
-						description: 'Manage companies (Partner API)',
-					},
-					{
 						name: 'Token',
 						value: 'token',
-						description: 'Manage API tokens (Partner API)',
 					},
 					{
 						name: 'User',
 						value: 'user',
-						description: 'Manage users (Partner API)',
 					},
 				],
-				default: 'debtor',
+				default: 'info',
 			},
-			
-			// Legacy resource operations (to be replaced)
-			...claimDescription.operations,
-			...debtorDescription.operations,
-			...infoDescription.operations,
-			
-			// New unified operations structure
-			...newOperations,
-			
-			// Legacy resource fields (to be replaced)
-			...claimDescription.properties,
-			...debtorDescription.properties,
-			...infoDescription.properties,
-			
-			// New resources fields with displayOptions
-			// Company fields
-			{
-				displayName: 'Company Data',
-				name: 'companyData',
-				type: 'collection',
-				placeholder: 'Add Field',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['company'],
-						operation: ['create'],
-					},
-				},
-				options: operationFields.company.create,
-			},
-			{
-				displayName: 'Company Parameters',
-				name: 'companyParams',
-				type: 'collection',
-				placeholder: 'Add Field',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['company'],
-						operation: ['get'],
-					},
-				},
-				options: operationFields.company.get,
-			},
-			{
-				displayName: 'Company List Options',
-				name: 'companyListOptions',
-				type: 'collection',
-				placeholder: 'Add Option',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['company'],
-						operation: ['list'],
-					},
-				},
-				options: operationFields.company.list,
-			},
-			
-			// User fields
-			{
-				displayName: 'User Parameters',
-				name: 'userParams',
-				type: 'collection',
-				placeholder: 'Add Field',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['user'],
-						operation: ['get'],
-					},
-				},
-				options: operationFields.user.get,
-			},
-			{
-				displayName: 'User Invite Details',
-				name: 'userInviteDetails',
-				type: 'collection',
-				placeholder: 'Add Field',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['user'],
-						operation: ['invite'],
-					},
-				},
-				options: operationFields.user.invite,
-			},
-			{
-				displayName: 'User List Options',
-				name: 'userListOptions',
-				type: 'collection',
-				placeholder: 'Add Option',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['user'],
-						operation: ['list'],
-					},
-				},
-				options: operationFields.user.list,
-			},
-			
-			// Token fields
-			{
-				displayName: 'Token Parameters',
-				name: 'tokenParams',
-				type: 'collection',
-				placeholder: 'Add Field',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['token'],
-						operation: ['get'],
-					},
-				},
-				options: [],
-			},
+
+			// Resource operations and their fields
+			...claimOperations,
+			...companyOperations,
+			...debtorOperations,
+			...infoOperations,
+			...tokenOperations,
+			...userOperations,
 		],
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
+
+		// Get the resource and operation selected by the user
 		const resource = this.getNodeParameter('resource', 0) as string;
 		const operation = this.getNodeParameter('operation', 0) as string;
+
+		// Resource operation mappings
+		const operationMappings: ResourceMappings = {
+			claim: claimOperationMapping,
+			debtor: debtorOperationMapping,
+			info: infoOperationMapping,
+			company: companyOperationMapping,
+			user: userOperationMapping,
+			token: tokenOperationMapping,
+		};
+
+		// Look up the function to execute based on resource and operation
+		const operationMap = operationMappings[resource];
 		
-		console.log(`[Paywise.node] Executing operation: ${resource}.${operation}`);
+		if (!operationMap) {
+			throw new NodeOperationError(this.getNode(), `Resource "${resource}" is not implemented`);
+		}
+		
+		const operationFunc = operationMap[operation];
+		
+		if (!operationFunc) {
+			throw new NodeOperationError(this.getNode(), `Operation "${operation}" for resource "${resource}" is not implemented`);
+		}
 
-		try {
-			let result: JsonObject;
-			let operationFunction: Function | undefined;
-
-			// Execute the operation based on the resource type
-			switch (resource) {
-				case 'claim':
-					console.log('[Paywise.node] Claim operations available:', Object.keys(claimOperations));
-					operationFunction = claimOperations[operation];
-					console.log(`[Paywise.node] Found operation function for ${operation}:`, !!operationFunction);
-					
-					if (!operationFunction) {
-						throw new Error(`Operation function not found: ${operation}`);
-					}
-					
-					result = await operationFunction.call(this);
-					break;
-					
-				case 'company':
-					console.log('[Paywise.node] Company operations:', operation);
-					// Import company operations dynamically
-					const { createCompany, getCompany, listCompanies } = await import('./resources');
-					
-					switch (operation) {
-						case 'create':
-							result = await createCompany.call(this);
-							break;
-						case 'get':
-							result = await getCompany.call(this);
-							break;
-						case 'list':
-							result = await listCompanies.call(this);
-							break;
-						default:
-							throw new Error(`Operation not implemented: ${operation}`);
-					}
-					break;
-					
-				case 'user':
-					console.log('[Paywise.node] User operations:', operation);
-					// Import user operations dynamically
-					const { getUser, inviteUser, listUsers } = await import('./resources');
-					
-					switch (operation) {
-						case 'get':
-							result = await getUser.call(this);
-							break;
-						case 'invite':
-							result = await inviteUser.call(this);
-							break;
-						case 'list':
-							result = await listUsers.call(this);
-							break;
-						default:
-							throw new Error(`Operation not implemented: ${operation}`);
-					}
-					break;
-					
-				case 'token':
-					console.log('[Paywise.node] Token operations:', operation);
-					// Import token operations dynamically
-					const { getToken } = await import('./resources');
-					
-					switch (operation) {
-						case 'get':
-							result = await getToken.call(this);
-							break;
-						default:
-							throw new Error(`Operation not implemented: ${operation}`);
-					}
-					break;
-					
-				case 'debtor':
-					console.log('[Paywise.node] Debtor operations available:', Object.keys(debtorOperations));
-					operationFunction = debtorOperations[operation];
-					console.log(`[Paywise.node] Found operation function for ${operation}:`, !!operationFunction);
-					
-					if (!operationFunction) {
-						throw new Error(`Operation function not found: ${operation}`);
-					}
-					
-					result = await operationFunction.call(this);
-					break;
-					
-				case 'info':
-					console.log('[Paywise.node] Info operations available:', Object.keys(infoOperations));
-					operationFunction = infoOperations[operation];
-					console.log(`[Paywise.node] Found operation function for ${operation}:`, !!operationFunction);
-					
-					if (!operationFunction) {
-						throw new Error(`Operation function not found: ${operation}`);
-					}
-					
-					result = await operationFunction.call(this);
-					break;
-					
-				default:
-					throw new NodeOperationError(this.getNode(), `The resource "${resource}" is not known!`);
+		// Execute the operation for each item
+		for (let i = 0; i < items.length; i++) {
+			try {
+				const result = await operationFunc.call(this, i);
+				returnData.push({
+					json: result as JsonObject,
+				});
+			} catch (error) {
+				throw error;
 			}
-
-			console.log('[Paywise.node] Operation completed successfully');
-			returnData.push({ json: result });
-		} catch (error) {
-			console.error('[Paywise.node] Error during execution:', error);
-			
-			const paywiseError = error as PaywiseApiError;
-			if (paywiseError.response) {
-				// Extract API error details if available
-				const statusCode = paywiseError.response.statusCode || 'unknown';
-				const errorMessage = paywiseError.response.body?.message || paywiseError.message;
-				const errorDetails = paywiseError.response.body?.errors 
-					? JSON.stringify(paywiseError.response.body.errors) 
-					: '';
-				
-				console.error(`[Paywise.node] API Error (${statusCode}): ${errorMessage} ${errorDetails}`);
-				throw new NodeApiError(this.getNode(), paywiseError as unknown as JsonObject);
-			}
-			
-			// For non-API errors
-			console.error('[Paywise.node] Execution error:', paywiseError.message);
-			throw new NodeOperationError(
-				this.getNode(), 
-				`Failed to ${operation}: ${paywiseError.message}`
-			);
 		}
 
 		return [returnData];

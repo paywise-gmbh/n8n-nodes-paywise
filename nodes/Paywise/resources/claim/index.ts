@@ -1,9 +1,21 @@
-import { IResourceDescription } from '../../interfaces';
-import { claimOperations, claimOperationFields } from './operations';
 import { INodeProperties } from 'n8n-workflow';
+import {
+	createClaim,
+	createClaimFields,
+	releaseClaim,
+	releaseClaimFields,
+	createAndReleaseClaim, 
+	createAndReleaseClaimFields,
+	getClaim,
+	getClaimFields,
+	listClaims,
+	listClaimsFields,
+	uploadDocument,
+	uploadDocumentFields,
+} from './operations';
 
-// Create a combined properties array for all operations
-const operations: INodeProperties[] = [
+// Define the claim resource operations (UI elements)
+export const claimOperations = [
 	{
 		displayName: 'Operation',
 		name: 'operation',
@@ -17,31 +29,31 @@ const operations: INodeProperties[] = [
 		options: [
 			{
 				name: 'Create',
-				value: 'createClaim',
+				value: 'create',
 				description: 'Create a new claim',
 				action: 'Create a new claim',
 			},
 			{
 				name: 'Create and Release',
-				value: 'createAndReleaseClaim',
+				value: 'createAndRelease',
 				description: 'Create a new claim and release it',
 				action: 'Create and release a new claim',
 			},
 			{
 				name: 'Get',
-				value: 'getClaim',
+				value: 'get',
 				description: 'Retrieve a claim',
 				action: 'Get a claim',
 			},
 			{
 				name: 'List',
-				value: 'listClaims',
+				value: 'list',
 				description: 'List all claims',
 				action: 'List all claims',
 			},
 			{
 				name: 'Release',
-				value: 'releaseClaim',
+				value: 'release',
 				description: 'Release claim for processing',
 				action: 'Release a claim',
 			},
@@ -52,80 +64,106 @@ const operations: INodeProperties[] = [
 				action: 'Upload a document to a claim',
 			},
 		],
-		default: 'listClaims',
+		default: 'list',
 	},
+	
+	// Fields for create operation
+	...createClaimFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['create', 'createAndRelease'],
+				resource: ['claim'],
+			},
+		},
+	})),
+	
+	// Fields for release operation
+	...releaseClaimFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['release'],
+				resource: ['claim'],
+			},
+		},
+	})),
+	
+	// Fields for get operation
+	...getClaimFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['get'],
+				resource: ['claim'],
+			},
+		},
+	})),
+	
+	// Fields for list operation
+	...listClaimsFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['list'],
+				resource: ['claim'],
+			},
+		},
+	})),
+	
+	// Fields for createAndRelease operation (extra fields not in create)
+	...createAndReleaseClaimFields
+		.filter(field => !createClaimFields.some(f => f.name === field.name))
+		.map(field => ({
+			...field,
+			displayOptions: {
+				...field.displayOptions,
+				show: {
+					...(field.displayOptions?.show || {}),
+					operation: ['createAndRelease'],
+					resource: ['claim'],
+				},
+			},
+		})),
+		
+	// Fields for uploadDocument operation
+	...uploadDocumentFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['uploadDocument'],
+				resource: ['claim'],
+			},
+		},
+	})),
 ];
 
-// Create the properties array by adding operation-specific fields with display conditions
-const properties: INodeProperties[] = [];
-
-// Special handling for createClaim fields - make them available for createAndReleaseClaim too
-claimOperationFields['createClaim'].forEach((field) => {
-	// Clone the field to not modify the original
-	const newField = { ...field };
-	
-	// Add or update displayOptions to show for both createClaim and createAndReleaseClaim
-	newField.displayOptions = newField.displayOptions || {};
-	newField.displayOptions.show = newField.displayOptions.show || {};
-	newField.displayOptions.show.operation = newField.displayOptions.show.operation || [];
-	
-	// If operation is already conditional, make sure it's an array
-	if (typeof newField.displayOptions.show.operation === 'string') {
-		newField.displayOptions.show.operation = [newField.displayOptions.show.operation];
-	}
-	
-	// Show for both operations
-	if (!newField.displayOptions.show.operation.includes('createClaim')) {
-		newField.displayOptions.show.operation.push('createClaim');
-	}
-	if (!newField.displayOptions.show.operation.includes('createAndReleaseClaim')) {
-		newField.displayOptions.show.operation.push('createAndReleaseClaim');
-	}
-	
-	// Add resource condition 
-	newField.displayOptions.show.resource = ['claim'];
-	
-	// Add to properties array
-	properties.push(newField);
-});
-
-// Add all fields for other operations with proper display conditions
-Object.entries(claimOperationFields).forEach(([operationName, fields]) => {
-	// Skip createClaim since we already handled it
-	if (operationName === 'createClaim') return;
-	
-	fields.forEach((field) => {
-		// Clone the field to not modify the original
-		const newField = { ...field };
-		
-		// Add or update displayOptions to show only for the specific operation
-		newField.displayOptions = newField.displayOptions || {};
-		newField.displayOptions.show = newField.displayOptions.show || {};
-		newField.displayOptions.show.operation = newField.displayOptions.show.operation || [];
-		
-		// If operation is already conditional, make sure it's an array
-		if (typeof newField.displayOptions.show.operation === 'string') {
-			newField.displayOptions.show.operation = [newField.displayOptions.show.operation];
-		}
-		
-		// Add the current operation to the display conditions if not already included
-		if (!newField.displayOptions.show.operation.includes(operationName)) {
-			newField.displayOptions.show.operation.push(operationName);
-		}
-		
-		// Add resource condition 
-		newField.displayOptions.show.resource = ['claim'];
-		
-		// Add to properties array
-		properties.push(newField);
-	});
-});
-
-// Export the description for the resource
-export const claimDescription: IResourceDescription = {
-	operations,
-	properties,
+// Mapping from UI operation values to function implementations
+export const claimOperationMapping = {
+	create: createClaim,
+	get: getClaim,
+	list: listClaims,
+	release: releaseClaim,
+	createAndRelease: createAndReleaseClaim,
+	uploadDocument: uploadDocument,
 };
 
-// Export the operations
-export { claimOperations }; 
+// Export operations for direct access
+export {
+	createClaim,
+	releaseClaim,
+	createAndReleaseClaim,
+	getClaim,
+	listClaims,
+	uploadDocument,
+}; 

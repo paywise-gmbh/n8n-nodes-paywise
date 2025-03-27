@@ -1,10 +1,11 @@
+import { INodeProperties } from 'n8n-workflow';
 import {
-	getUserFields,
 	getUser,
-	inviteUserFields,
+	getUserFields,
 	inviteUser,
-	listUsersFields,
+	inviteUserFields,
 	listUsers,
+	listUsersFields,
 } from './operations';
 
 import {
@@ -15,7 +16,7 @@ import {
 	IUserListResponse,
 } from './user.interfaces';
 
-// Define the user resource operations
+// Define the user resource operations (UI elements)
 export const userOperations = [
 	{
 		displayName: 'Operation',
@@ -49,19 +50,60 @@ export const userOperations = [
 		],
 		default: 'list',
 	},
+	
+	// Fields for get operation
+	...getUserFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['get'],
+				resource: ['user'],
+			},
+		},
+	})),
+	
+	// Fields for invite operation
+	...inviteUserFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['invite'],
+				resource: ['user'],
+			},
+		},
+	})),
+	
+	// Fields for list operation
+	...listUsersFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['list'],
+				resource: ['user'],
+			},
+		},
+	})),
 ];
 
-// Export all operations and fields
+// Mapping from UI operation values to function implementations
+export const userOperationMapping = {
+	get: getUser,
+	invite: inviteUser,
+	list: listUsers,
+};
+
+// Export operations for direct access
 export {
 	// Operations
 	getUser,
 	inviteUser,
 	listUsers,
-	
-	// Fields
-	getUserFields,
-	inviteUserFields,
-	listUsersFields,
 	
 	// Interfaces
 	IUserData,
