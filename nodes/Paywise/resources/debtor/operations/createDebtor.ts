@@ -1,6 +1,7 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
 import { IDebtorData, IAddress, ICommunicationChannel, IBankAccount, IPerson, IOrganization } from '../debtor.interfaces';
+import { ApiType, getApiUrl } from '../../../apiUtils';
 
 // Define operation field properties
 export const createDebtorFields: INodeProperties[] = [
@@ -487,13 +488,15 @@ export async function createDebtor(this: IExecuteFunctions): Promise<JsonObject>
 			addressCount: debtorData.addresses?.length || 0
 		});
 		
-		// Make the API request directly
+		// Make the API request
 		console.log('[createDebtor] Getting credentials and preparing request');
 		const credentials = await this.getCredentials('paywiseApi');
 		
+		const url = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'debtors');
+		
 		const options = {
 			method: 'POST',
-			url: `${credentials.baseUrl}/debtors/`,
+			url: url,
 			headers: {
 				'Content-Type': 'application/json',
 				'Accept': 'application/json',

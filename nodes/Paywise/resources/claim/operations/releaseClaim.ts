@@ -1,5 +1,6 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
+import { ApiType, getApiUrl } from '../../../apiUtils';
 
 // Define operation field properties
 export const releaseClaimFields: INodeProperties[] = [
@@ -34,20 +35,23 @@ export async function releaseClaim(this: IExecuteFunctions): Promise<JsonObject>
 		const { claimId } = mapReleaseClaimParams.call(this);
 		console.log('[releaseClaim] Parameters mapped:', { claimId });
 		
-		// Make the API request directly
-		console.log('[releaseClaim] Getting credentials and preparing request');
-		const credentials = await this.getCredentials('paywiseApi');
+		// Get API URL using the getApiUrl function
+		const url = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'claims', claimId);
 		
+		console.log('[releaseClaim] Using URL:', url);
+		
+		// Make API request
 		const options = {
-			method: 'PATCH',
-			url: `${credentials.baseUrl}/claims/${claimId}/`,
+			method: 'POST',
+			url,
 			headers: {
 				'Content-Type': 'application/json',
 				'Accept': 'application/json',
 			},
-			body: {
-				submission_state: 'released',
-			},
+			// JSON body for release action
+			body: JSON.stringify({
+				status: 'release',
+			}),
 		};
 		
 		console.log('[releaseClaim] Making authenticated API request');

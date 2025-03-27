@@ -5,13 +5,23 @@ export interface PaywiseApiError {
 	response?: {
 		body: {
 			message: string;
+			errors?: Record<string, string[]>;
+			status?: number;
+			code?: string;
 		};
+		statusCode?: number;
+		statusMessage?: string;
+		headers?: Record<string, string>;
 	};
 	message: string;
+	code?: string;
+	stack?: string;
 }
 
 export interface IPaywiseCredentials {
 	baseUrl: string;
+	caseManagementApiSubpath?: string;
+	partnerApiSubpath?: string;
 }
 
 export interface IResourceFunctions {

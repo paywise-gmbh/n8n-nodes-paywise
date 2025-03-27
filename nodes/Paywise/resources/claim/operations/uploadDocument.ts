@@ -1,6 +1,7 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
 import FormData from 'form-data';
+import { ApiType, getApiUrl } from '../../../apiUtils';
 
 // Define operation field properties
 export const uploadDocumentFields: INodeProperties[] = [
@@ -105,7 +106,7 @@ export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObjec
 		// Use n8n's built-in multipart/form-data handling
 		const options = {
 			method: 'POST',
-			url: `${credentials.baseUrl}/claims/${claimId}/documents/`,
+			url: await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, `claims/${claimId}/documents`),
 			headers: {
 				'Accept': 'application/json',
 			},

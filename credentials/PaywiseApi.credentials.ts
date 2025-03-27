@@ -13,9 +13,9 @@ export class PaywiseApi implements ICredentialType {
 			displayName: 'Base URL',
 			name: 'baseUrl',
 			type: 'string',
-			default: 'https://api.paywise.org/v1',
+			default: 'https://api.paywise.org',
 			required: true,
-			description: 'The base URL of the Paywise API',
+			description: 'The base URL of the Paywise API without any subpaths',
 		},
 		{
 			displayName: 'API Token',
@@ -27,6 +27,22 @@ export class PaywiseApi implements ICredentialType {
 			default: '',
 			required: true,
 			description: 'The Bearer token for authentication',
+		},
+		{
+			displayName: 'Case Management API Subpath',
+			name: 'caseManagementApiSubpath',
+			type: 'string',
+			default: '/v1',
+			required: true,
+			description: 'The subpath for the Case Management API',
+		},
+		{
+			displayName: 'Partner API Subpath',
+			name: 'partnerApiSubpath',
+			type: 'string',
+			default: '/partner/v1',
+			required: true,
+			description: 'The subpath for the Partner API',
 		},
 	];
 

@@ -1,6 +1,7 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
 import { IClaimData, IClaimItem, IAdditionalCharge, IPayment } from '../claim.interfaces';
+import { ApiType, getApiUrl } from '../../../apiUtils';
 
 // Define operation field properties
 export const createClaimFields: INodeProperties[] = [
@@ -1066,13 +1067,14 @@ export async function createClaim(this: IExecuteFunctions): Promise<JsonObject> 
 		validateClaimData.call(this, claimData);
 		console.log('[createClaim] Data validated successfully');
 		
-		// Make the API request directly
+		// Make the API request
 		console.log('[createClaim] Getting credentials and preparing request');
 		const credentials = await this.getCredentials('paywiseApi');
+		const url = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'claims');
 		
 		const options = {
 			method: 'POST',
-			url: `${credentials.baseUrl}/claims/`,
+			url: url,
 			headers: {
 				'Content-Type': 'application/json',
 				'Accept': 'application/json',

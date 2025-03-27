@@ -4,6 +4,7 @@ import { IClaimData } from '../claim.interfaces';
 import { createClaim, createClaimFields, mapToClaimData, validateClaimData } from './createClaim';
 import { mapUploadDocumentParams } from './uploadDocument';
 import FormData from 'form-data';
+import { ApiType, getApiUrl } from '../../../apiUtils';
 
 // Define operation field properties specific to createAndReleaseClaim
 // We'll reuse the same claim data input logic from createClaim, but add document fields
@@ -244,7 +245,7 @@ async function uploadClaimDocument(
 	// Use n8n's built-in multipart/form-data handling
 	const options = {
 		method: 'POST',
-		url: `${credentials.baseUrl}/claims/${claimId}/documents/`,
+		url: await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, `claims/${claimId}/documents/`),
 		headers: {
 			'Accept': 'application/json',
 		},
@@ -303,7 +304,7 @@ async function releaseExistingClaim(this: IExecuteFunctions, claimId: string): P
 	
 	const releaseOptions = {
 		method: 'PATCH',
-		url: `${credentials.baseUrl}/claims/${claimId}/`,
+		url: await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, `claims/${claimId}/`),
 		headers: {
 			'Content-Type': 'application/json',
 			'Accept': 'application/json',
@@ -378,7 +379,7 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 		
 		const createOptions = {
 			method: 'POST',
-			url: `${credentials.baseUrl}/claims/`,
+			url: await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'claims'),
 			headers: {
 				'Content-Type': 'application/json',
 				'Accept': 'application/json',

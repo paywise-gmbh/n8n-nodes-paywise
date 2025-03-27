@@ -1,5 +1,6 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
+import { ApiType, getApiUrl } from '../../../apiUtils';
 
 // Define operation field properties
 export const listDebtorsFields: INodeProperties[] = [
@@ -41,24 +42,21 @@ export async function listDebtors(this: IExecuteFunctions): Promise<JsonObject> 
 		// Map parameters
 		const { limit, offset } = mapListDebtorsParams.call(this);
 		
-		// Make the API request directly like getInfo does
-		console.log('[listDebtors] Getting credentials and preparing request');
-		const credentials = await this.getCredentials('paywiseApi');
-		console.log('[listDebtors] Credentials retrieved:', {
-			baseUrl: credentials.baseUrl,
-			hasCredentials: !!credentials
-		});
+		// Convert parameters to query string
+		const queryString = `limit=${limit}&offset=${offset}`;
 		
-		// Use the same approach as getInfo instead of PaywiseClient
+		// Get API URL using the getApiUrl function
+		const baseUrl = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'debtors');
+		const url = `${baseUrl}?${queryString}`;
+		
+		console.log('[listDebtors] Using URL:', url);
+		
+		// Make API request
 		const options = {
 			method: 'GET',
-			url: `${credentials.baseUrl}/debtors/`,
+			url,
 			headers: {
 				'Accept': 'application/json',
-			},
-			qs: {
-				limit,
-				offset,
 			},
 		};
 		
