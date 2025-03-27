@@ -20,14 +20,7 @@ import {
 
 import {
 	tokenOperations,
-	createToken,
 	getToken,
-	deleteToken,
-	listTokens,
-	createTokenFields,
-	getTokenFields,
-	deleteTokenFields,
-	listTokensFields,
 } from './token';
 
 // Export all resource operations
@@ -51,10 +44,7 @@ export {
 	listUsers,
 	
 	// Token operations
-	createToken,
 	getToken,
-	deleteToken,
-	listTokens,
 };
 
 // Export all operation fields
@@ -71,12 +61,4 @@ export const operationFields = {
 		invite: inviteUserFields,
 		list: listUsersFields,
 	},
-	// Token fields
-	token: {
-		create: createTokenFields,
-		get: getTokenFields,
-		delete: deleteTokenFields,
-		list: listTokensFields,
-	},
-	// Additional resources will be added here
 }; 

@@ -188,21 +188,6 @@ export class Paywise implements INodeType {
 			
 			// Token fields
 			{
-				displayName: 'Token Details',
-				name: 'tokenDetails',
-				type: 'collection',
-				placeholder: 'Add Field',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['token'],
-						operation: ['create'],
-					},
-				},
-				options: operationFields.token.create,
-			},
-			{
 				displayName: 'Token Parameters',
 				name: 'tokenParams',
 				type: 'collection',
@@ -215,37 +200,7 @@ export class Paywise implements INodeType {
 						operation: ['get'],
 					},
 				},
-				options: operationFields.token.get,
-			},
-			{
-				displayName: 'Token Parameters',
-				name: 'tokenDeleteParams',
-				type: 'collection',
-				placeholder: 'Add Field',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['token'],
-						operation: ['delete'],
-					},
-				},
-				options: operationFields.token.delete,
-			},
-			{
-				displayName: 'Token List Options',
-				name: 'tokenListOptions',
-				type: 'collection',
-				placeholder: 'Add Option',
-				default: {},
-				required: false,
-				displayOptions: {
-					show: {
-						resource: ['token'],
-						operation: ['list'],
-					},
-				},
-				options: operationFields.token.list,
+				options: [],
 			},
 		],
 	};
@@ -319,55 +274,11 @@ export class Paywise implements INodeType {
 				case 'token':
 					console.log('[Paywise.node] Token operations:', operation);
 					// Import token operations dynamically
-					const { createToken, getToken, deleteToken, listTokens } = await import('./resources');
+					const { getToken } = await import('./resources');
 					
 					switch (operation) {
-						case 'create':
-							result = await createToken.call(this);
-							break;
 						case 'get':
 							result = await getToken.call(this);
-							break;
-						case 'delete':
-							result = await deleteToken.call(this);
-							break;
-						case 'list':
-							result = await listTokens.call(this);
-							break;
-						case 'getInfo':
-							// Special case for token info - doesn't require parameters
-							const getTokenInfo = async function(this: IExecuteFunctions): Promise<JsonObject> {
-								console.log('[getTokenInfo] operation function called');
-								
-								try {
-									// Get API URL for token info endpoint
-									const url = await getApiUrl.call(this, ApiType.PARTNER, 'info');
-									
-									// Make API request
-									const options = {
-										method: 'GET',
-										url,
-										headers: {
-											'Accept': 'application/json',
-										},
-									};
-									
-									console.log('[getTokenInfo] Making authenticated API request to:', url);
-									const response = await this.helpers.requestWithAuthentication.call(
-										this,
-										'paywiseApi',
-										options,
-									);
-									
-									console.log('[getTokenInfo] Response received successfully');
-									return JSON.parse(response);
-								} catch (error) {
-									console.error('[getTokenInfo] Error:', error);
-									throw error;
-								}
-							};
-							
-							result = await getTokenInfo.call(this);
 							break;
 						default:
 							throw new Error(`Operation not implemented: ${operation}`);

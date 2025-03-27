@@ -2,35 +2,17 @@ import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
 import { ApiType, getApiUrl } from '../../../apiUtils';
 
-// Define operation field properties
-export const getTokenFields: INodeProperties[] = [
-	{
-		displayName: 'Token ID',
-		name: 'tokenId',
-		type: 'string',
-		default: '',
-		description: 'The ID of the token to retrieve',
-	},
-];
-
 export async function getToken(this: IExecuteFunctions): Promise<JsonObject> {
 	console.log('[getToken] operation function called');
 	
 	try {
-		// Get parameters from tokenParams collection
-		const tokenParams = this.getNodeParameter('tokenParams', 0, {}) as { tokenId?: string };
-		
-		if (!tokenParams.tokenId) {
-			throw new Error('Token ID is required');
-		}
-		
-		// Get API URL
-		const url = await getApiUrl.call(this, ApiType.PARTNER, 'tokens', tokenParams.tokenId);
+		// Get API URL for info endpoint (this will return current token info)
+		const url = await getApiUrl.call(this, ApiType.PARTNER, 'info');
 		
 		// Make API request
 		const options = {
 			method: 'GET',
-			url,
+			url: url + '/', // Ensure trailing slash
 			headers: {
 				'Accept': 'application/json',
 			},
