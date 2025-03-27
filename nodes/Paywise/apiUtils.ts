@@ -82,7 +82,7 @@ export async function getApiUrl(
 		}
 		
 		console.log(`[getApiUrl] Constructed URL: ${url}`);
-		return url;
+		return url+'/';
 	} catch (error) {
 		console.error('[getApiUrl] Error constructing API URL:', error);
 		throw error;

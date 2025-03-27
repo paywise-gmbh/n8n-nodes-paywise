@@ -5,7 +5,10 @@ export interface IUserData extends IDataObject {
 	email: string;
 	first_name: string;
 	last_name: string;
+	company: string;  // UUID of the company
+	id?: string;
 	notification_channels?: INotificationChannel[];
+	skip_email_verification?: boolean;
 }
 
 export interface IUserCreateResponse extends IDataObject {

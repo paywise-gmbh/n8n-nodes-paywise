@@ -29,6 +29,7 @@ export interface ICompanyData extends IDataObject {
 	notification_channels?: INotificationChannel[];
 	default_claim_type?: string;
 	iban?: string;
+	data_submission_completed?: boolean;
 }
 
 export interface ICompanyResponse extends IDataObject {

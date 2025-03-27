@@ -86,16 +86,19 @@ export class Paywise implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'Claim',
+						name: 'Claim (Case Management API)',
 						value: 'claim',
+						description: 'Manage claims via the Case Management API',
 					},
 					{
-						name: 'Debtor',
+						name: 'Debtor (Case Management API)',
 						value: 'debtor',
+						description: 'Manage debtors via the Case Management API',
 					},
 					{
-						name: 'Info',
+						name: 'Info (Case Management API)',
 						value: 'info',
+						description: 'Get API information via the Case Management API',
 					},
 					{
 						name: 'Company (Partner API)',

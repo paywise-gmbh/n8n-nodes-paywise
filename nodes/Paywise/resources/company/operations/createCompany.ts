@@ -5,12 +5,61 @@ import { ICompanyData } from '../company.interfaces';
 
 // Define operation field properties
 export const createCompanyFields: INodeProperties[] = [
-	// Basic company information
+	{
+		displayName: 'Input Method',
+		name: 'inputMethod',
+		type: 'options',
+		options: [
+			{
+				name: 'Form Fields',
+				value: 'fields',
+				description: 'Configure company using form fields',
+			},
+			{
+				name: 'JSON',
+				value: 'json',
+				description: 'Configure company using JSON',
+			},
+		],
+		default: 'fields',
+		description: 'Method to use for company creation',
+	},
+	{
+		displayName: 'Company JSON',
+		name: 'jsonData',
+		type: 'json',
+		default: '',
+		displayOptions: {
+			show: {
+				inputMethod: ['json'],
+			},
+		},
+		description: 'Company data as JSON object. Must include at minimum: name, phone, address, legal_form, and tax_deduction_eligibility',
+		hint: `Example: {
+  "name": "Example GmbH",
+  "phone": "+49 123 456789",
+  "legal_form": "GmbH",
+  "tax_deduction_eligibility": "J",
+  "address": {
+    "street": "Example Street 123",
+    "zip": "12345",
+    "city": "Berlin",
+    "country": "DE"
+  }
+}`,
+	},
+	// Basic company information - shown only when using fields input method
 	{
 		displayName: 'Name',
 		name: 'name',
 		type: 'string',
 		default: '',
+		required: true,
+		displayOptions: {
+			show: {
+				inputMethod: ['fields'],
+			},
+		},
 		description: 'Name of the company',
 	},
 	{
@@ -18,13 +67,25 @@ export const createCompanyFields: INodeProperties[] = [
 		name: 'phone',
 		type: 'string',
 		default: '',
-		description: 'Phone number of the company',
+		required: true,
+		displayOptions: {
+			show: {
+				inputMethod: ['fields'],
+			},
+		},
+		description: 'Phone number of the company (max 50 characters)',
 	},
 	{
 		displayName: 'Legal Form',
 		name: 'legal_form',
 		type: 'string',
 		default: '',
+		required: true,
+		displayOptions: {
+			show: {
+				inputMethod: ['fields'],
+			},
+		},
 		description: 'Legal form of the company (e.g., GmbH, AG, etc.)',
 	},
 	{
@@ -54,6 +115,12 @@ export const createCompanyFields: INodeProperties[] = [
 			},
 		],
 		default: 'J',
+		required: true,
+		displayOptions: {
+			show: {
+				inputMethod: ['fields'],
+			},
+		},
 		description: 'Tax deduction eligibility of the company',
 	},
 	// Address fields
@@ -66,6 +133,12 @@ export const createCompanyFields: INodeProperties[] = [
 			multipleValues: false,
 		},
 		default: {},
+		required: true,
+		displayOptions: {
+			show: {
+				inputMethod: ['fields'],
+			},
+		},
 		options: [
 			{
 				name: 'address',
@@ -76,6 +149,7 @@ export const createCompanyFields: INodeProperties[] = [
 						name: 'street',
 						type: 'string',
 						default: '',
+						required: true,
 						description: 'Street name and house number',
 					},
 					{
@@ -83,6 +157,7 @@ export const createCompanyFields: INodeProperties[] = [
 						name: 'zip',
 						type: 'string',
 						default: '',
+						required: true,
 						description: 'ZIP or postal code',
 					},
 					{
@@ -90,6 +165,7 @@ export const createCompanyFields: INodeProperties[] = [
 						name: 'city',
 						type: 'string',
 						default: '',
+						required: true,
 						description: 'City name',
 					},
 					{
@@ -103,6 +179,7 @@ export const createCompanyFields: INodeProperties[] = [
 							// Add more countries as needed
 						],
 						default: 'DE',
+						required: true,
 						description: 'Country code (ISO-3166-1)',
 					},
 				],
@@ -116,6 +193,11 @@ export const createCompanyFields: INodeProperties[] = [
 		type: 'collection',
 		placeholder: 'Add Field',
 		default: {},
+		displayOptions: {
+			show: {
+				inputMethod: ['fields'],
+			},
+		},
 		options: [
 			{
 				displayName: 'VAT Number',
@@ -133,7 +215,48 @@ export const createCompanyFields: INodeProperties[] = [
 					{ name: 'Goods Delivery (H43)', value: 'H43' },
 					{ name: 'Membership Fee (H22)', value: 'H22' },
 					{ name: 'Rent (H21)', value: 'H21' },
-					// Add more claim types as needed
+					{ name: 'Sales Contract (H11)', value: 'H11' },
+					{ name: 'Contract for Work (H44)', value: 'H44' },
+					{ name: 'Handcraft Service (H08)', value: 'H08' },
+					{ name: 'Insurance Premium (H41)', value: 'H41' },
+					{ name: 'Course/Training Costs (H16)', value: 'H16' },
+					{ name: 'Hotel Costs (H10)', value: 'H10' },
+					{ name: 'Medical/Dental Service (H02)', value: 'H02' },
+					{ name: 'Contractual Compensation (H28)', value: 'H28' },
+					{ name: 'Repair Service (H26)', value: 'H26' },
+					{ name: 'Legal Fee (H24)', value: 'H24' },
+					{ name: 'Freight Costs (H06)', value: 'H06' },
+					{ name: 'Vehicle Rental (H18)', value: 'H18' },
+					{ name: 'Shipping Costs (H34)', value: 'H34' },
+					{ name: 'Residential Rent (H19)', value: 'H19' },
+					{ name: 'Utility Service (H42)', value: 'H42' },
+					{ name: 'Commercial Rent (H17)', value: 'H17' },
+					{ name: 'Newspaper/Magazine Subscription (H45)', value: 'H45' },
+					{ name: 'Unjust Enrichment (H37)', value: 'H37' },
+					{ name: 'Accident Compensation (H29)', value: 'H29' },
+					{ name: 'Newspaper Advertisement (H01)', value: 'H01' },
+					{ name: 'Veterinary Service (H78)', value: 'H78' },
+					{ name: 'Storage Costs (H14)', value: 'H14' },
+					{ name: 'Patient Transport Costs (H77)', value: 'H77' },
+					{ name: 'Broker Commission (H40)', value: 'H40' },
+					{ name: 'Leasing (H15)', value: 'H15' },
+					{ name: 'Lease (H23)', value: 'H23' },
+					{ name: 'Loan Repayment (H04)', value: 'H04' },
+					{ name: 'Rental Utilities (H20)', value: 'H20' },
+					{ name: 'Catering Costs (H79)', value: 'H79' },
+					{ name: 'Travel Contract (H75)', value: 'H75' },
+					{ name: 'Acknowledgment of Debt (H33)', value: 'H33' },
+					{ name: 'Out-of-court Settlement (H39)', value: 'H39' },
+					{ name: 'Daycare Fee (H70)', value: 'H70' },
+					{ name: 'Housing Association Fee (H90)', value: 'H90' },
+					{ name: 'Nursing Home Care (H09)', value: 'H09' },
+					{ name: 'Guarantee (H03)', value: 'H03' },
+					{ name: 'Business Management (H07)', value: 'H07' },
+					{ name: 'Current Account Settlement (H12)', value: 'H12' },
+					{ name: 'Hospital Costs (H13)', value: 'H13' },
+					{ name: 'Bank Account Overdraft (H36)', value: 'H36' },
+					{ name: 'Hospital Special Services (H61)', value: 'H61' },
+					{ name: 'Telecommunications (H76)', value: 'H76' },
 				],
 				default: 'H05',
 				description: 'Default claim type for the company',
@@ -143,7 +266,15 @@ export const createCompanyFields: INodeProperties[] = [
 				name: 'iban',
 				type: 'string',
 				default: '',
-				description: 'Company\'s payout account IBAN',
+				description: 'Company\'s payout account IBAN (max 32 characters)',
+				placeholder: 'DE89370400440532013000',
+			},
+			{
+				displayName: 'Data Submission Completed',
+				name: 'data_submission_completed',
+				type: 'boolean',
+				default: false,
+				description: 'Whether the company data submission is completed',
 			},
 		],
 	},
@@ -157,6 +288,11 @@ export const createCompanyFields: INodeProperties[] = [
 			multipleValues: true,
 		},
 		default: {},
+		displayOptions: {
+			show: {
+				inputMethod: ['fields'],
+			},
+		},
 		options: [
 			{
 				name: 'representatives',
@@ -198,6 +334,11 @@ export const createCompanyFields: INodeProperties[] = [
 			multipleValues: true,
 		},
 		default: {},
+		displayOptions: {
+			show: {
+				inputMethod: ['fields'],
+			},
+		},
 		options: [
 			{
 				name: 'channels',
@@ -208,9 +349,11 @@ export const createCompanyFields: INodeProperties[] = [
 						name: 'channel_type',
 						type: 'options',
 						options: [
-							{ name: 'Email', value: 'EMAIL' },
+							{ name: 'Email', value: 'email' },
+							{ name: 'SMS', value: 'sms' },
+							// Add more channel types as needed
 						],
-						default: 'EMAIL',
+						default: 'email',
 						description: 'Type of notification channel',
 					},
 					{
@@ -218,19 +361,20 @@ export const createCompanyFields: INodeProperties[] = [
 						name: 'value',
 						type: 'string',
 						default: '',
-						description: 'Email address for notifications',
+						description: 'Email address or phone number for notifications',
 					},
 					{
 						displayName: 'Notification Types',
 						name: 'notification_types',
 						type: 'multiOptions',
 						options: [
-							{ name: 'Status Updates', value: 'STATUS_UPDATE' },
-							{ name: 'Client Requests', value: 'REQUESTS_TO_CLIENT' },
-							{ name: 'Statements', value: 'STATEMENTS' },
+							{ name: 'Claim Created', value: 'claim_created' },
+							{ name: 'Claim Paid', value: 'claim_paid' },
+							{ name: 'Claim Status Changed', value: 'claim_status_changed' },
+							// Add more notification types as needed
 						],
-						default: ['STATUS_UPDATE', 'REQUESTS_TO_CLIENT', 'STATEMENTS'],
-						description: 'Types of notifications to receive',
+						default: ['claim_status_changed'],
+						description: 'Types of notifications to send through this channel',
 					},
 				],
 			},
@@ -242,103 +386,175 @@ export async function createCompany(this: IExecuteFunctions): Promise<JsonObject
 	console.log('[createCompany] operation function called');
 	
 	try {
-		// Get company data from parameters
-		const companyData = this.getNodeParameter('companyData', 0, {});
+		// Determine input method
+		const inputMethod = this.getNodeParameter('inputMethod', 0) as string;
+		let company: ICompanyData;
 		
-		// Validate required fields
-		if (!companyData.name) {
-			throw new Error('Company name is required');
-		}
-		
-		if (!companyData.phone) {
-			throw new Error('Company phone is required');
-		}
-		
-		if (!companyData.legal_form) {
-			throw new Error('Company legal form is required');
-		}
-		
-		if (!companyData.tax_deduction_eligibility) {
-			throw new Error('Tax deduction eligibility is required');
-		}
-		
-		// Verify required address information exists
-		if (!companyData.addressDetails || !companyData.addressDetails.address) {
-			throw new Error('Company address is required');
-		}
-		
-		const addressData = companyData.addressDetails.address;
-		
-		// Validate address fields
-		if (!addressData.street) {
-			throw new Error('Street is required in company address');
-		}
-		
-		if (!addressData.zip) {
-			throw new Error('ZIP code is required in company address');
-		}
-		
-		if (!addressData.city) {
-			throw new Error('City is required in company address');
-		}
-		
-		if (!addressData.country) {
-			throw new Error('Country is required in company address');
-		}
-		
-		// Build company data object with required address
-		const company: ICompanyData = {
-			name: companyData.name as string,
-			phone: companyData.phone as string,
-			legal_form: companyData.legal_form as string,
-			tax_deduction_eligibility: companyData.tax_deduction_eligibility as string,
-			address: {
-				street: addressData.street as string,
-				zip: addressData.zip as string,
-				city: addressData.city as string,
-				country: addressData.country as string,
-			},
-		};
-		
-		// Add optional fields
-		if (companyData.additionalFields) {
-			const additionalFields = companyData.additionalFields as JsonObject;
+		if (inputMethod === 'json') {
+			// Get data from JSON input
+			const jsonString = this.getNodeParameter('jsonData', 0) as string;
 			
-			if (additionalFields.vat_number) {
-				company.vat_number = additionalFields.vat_number as string;
+			try {
+				company = JSON.parse(jsonString) as ICompanyData;
+			} catch (e: any) {
+				throw new Error('Invalid JSON: ' + e.message);
 			}
 			
-			if (additionalFields.default_claim_type) {
-				company.default_claim_type = additionalFields.default_claim_type as string;
+			// Validate JSON input contains required fields
+			if (!company.name) {
+				throw new Error('Company name is required in JSON');
 			}
 			
-			if (additionalFields.iban) {
-				company.iban = additionalFields.iban as string;
+			if (!company.phone) {
+				throw new Error('Company phone is required in JSON');
+			}
+			
+			if (!company.legal_form) {
+				throw new Error('Company legal form is required in JSON');
+			}
+			
+			if (!company.tax_deduction_eligibility) {
+				throw new Error('Tax deduction eligibility is required in JSON');
+			}
+			
+			if (!company.address) {
+				throw new Error('Company address is required in JSON');
+			}
+			
+			if (!company.address.street) {
+				throw new Error('Street is required in company address JSON');
+			}
+			
+			if (!company.address.zip) {
+				throw new Error('ZIP code is required in company address JSON');
+			}
+			
+			if (!company.address.city) {
+				throw new Error('City is required in company address JSON');
+			}
+			
+			if (!company.address.country) {
+				throw new Error('Country is required in company address JSON');
+			}
+			
+			// Tax deduction eligibility K requires VAT number
+			if (company.tax_deduction_eligibility === 'K' && !company.vat_number) {
+				throw new Error('VAT number is required when tax_deduction_eligibility is K');
+			}
+			
+		} else {
+			// Get company data from form fields
+			const companyData = this.getNodeParameter('companyData', 0, {});
+			
+			// Verify required fields
+			if (!companyData.name) {
+				throw new Error('Company name is required');
+			}
+			
+			if (!companyData.phone) {
+				throw new Error('Company phone is required');
+			}
+			
+			if (!companyData.legal_form) {
+				throw new Error('Company legal form is required');
+			}
+			
+			if (!companyData.tax_deduction_eligibility) {
+				throw new Error('Tax deduction eligibility is required');
+			}
+			
+			// Verify required address information exists
+			if (!companyData.addressDetails || !companyData.addressDetails.address) {
+				throw new Error('Company address is required');
+			}
+			
+			const addressData = companyData.addressDetails.address;
+			
+			// Validate address fields
+			if (!addressData.street) {
+				throw new Error('Street is required in company address');
+			}
+			
+			if (!addressData.zip) {
+				throw new Error('ZIP code is required in company address');
+			}
+			
+			if (!addressData.city) {
+				throw new Error('City is required in company address');
+			}
+			
+			if (!addressData.country) {
+				throw new Error('Country is required in company address');
+			}
+			
+			// Build company data object with required address
+			company = {
+				name: companyData.name as string,
+				phone: companyData.phone as string,
+				legal_form: companyData.legal_form as string,
+				tax_deduction_eligibility: companyData.tax_deduction_eligibility as string,
+				address: {
+					street: addressData.street as string,
+					zip: addressData.zip as string,
+					city: addressData.city as string,
+					country: addressData.country as string,
+				},
+			};
+			
+			// Add optional fields
+			if (companyData.additionalFields) {
+				const additionalFields = companyData.additionalFields as JsonObject;
+				
+				if (additionalFields.vat_number) {
+					company.vat_number = additionalFields.vat_number as string;
+				}
+				
+				if (additionalFields.default_claim_type) {
+					company.default_claim_type = additionalFields.default_claim_type as string;
+				}
+				
+				if (additionalFields.iban) {
+					company.iban = additionalFields.iban as string;
+				}
+				
+				if (additionalFields.data_submission_completed !== undefined) {
+					company.data_submission_completed = additionalFields.data_submission_completed as boolean;
+				}
+			}
+			
+			// Add legal representatives
+			if (companyData.legalRepresentatives && companyData.legalRepresentatives.representatives) {
+				const representatives = companyData.legalRepresentatives.representatives as Array<{ type: string; name: string }>;
+				company.legal_representatives = representatives.map(rep => ({
+					type: rep.type,
+					name: rep.name,
+				}));
+			}
+			
+			// Add notification channels
+			if (companyData.notificationChannels && companyData.notificationChannels.channels) {
+				const channels = companyData.notificationChannels.channels as Array<{
+					channel_type: string;
+					value: string;
+					notification_types: string[];
+				}>;
+				
+				company.notification_channels = channels.map(channel => ({
+					channel_type: channel.channel_type,
+					value: channel.value,
+					notification_types: channel.notification_types,
+				}));
 			}
 		}
 		
-		// Add legal representatives
-		if (companyData.legalRepresentatives && companyData.legalRepresentatives.representatives) {
-			const representatives = companyData.legalRepresentatives.representatives as Array<{ type: string; name: string }>;
-			company.legal_representatives = representatives.map(rep => ({
-				type: rep.type,
-				name: rep.name,
-			}));
+		// Validate VAT number when tax deduction eligibility is K
+		if (company.tax_deduction_eligibility === 'K' && !company.vat_number) {
+			throw new Error('VAT number is required when tax_deduction_eligibility is K');
 		}
 		
-		// Add notification channels
-		if (companyData.notificationChannels && companyData.notificationChannels.channels) {
-			const channels = companyData.notificationChannels.channels as Array<{
-				channel_type: string;
-				value: string;
-				notification_types: string[];
-			}>;
-			
-			company.notification_channels = channels.map(channel => ({
-				channel_type: channel.channel_type,
-				value: channel.value,
-				notification_types: channel.notification_types,
-			}));
+		// Validate IBAN length
+		if (company.iban && company.iban.length > 32) {
+			throw new Error('IBAN must not exceed 32 characters');
 		}
 		
 		// Get API URL
@@ -356,7 +572,6 @@ export async function createCompany(this: IExecuteFunctions): Promise<JsonObject
 		};
 		
 		console.log('[createCompany] Making authenticated API request to:', url);
-		console.log('[createCompany] Request body:', company);
 		
 		const response = await this.helpers.requestWithAuthentication.call(
 			this,

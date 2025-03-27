@@ -2,10 +2,10 @@ import { INodeProperties } from 'n8n-workflow';
 import {
 	getUser,
 	getUserFields,
-	inviteUser,
-	inviteUserFields,
 	listUsers,
 	listUsersFields,
+	createUser,
+	createUserFields,
 } from './operations';
 
 import {
@@ -30,16 +30,16 @@ export const userOperations = [
 		},
 		options: [
 			{
+				name: 'Create',
+				value: 'create',
+				description: 'Create a new user directly (API-only onboarding)',
+				action: 'Create a user',
+			},
+			{
 				name: 'Get',
 				value: 'get',
 				description: 'Get a user by ID',
 				action: 'Get a user',
-			},
-			{
-				name: 'Invite',
-				value: 'invite',
-				description: 'Invite a new user to a company',
-				action: 'Invite a user',
 			},
 			{
 				name: 'List',
@@ -51,6 +51,19 @@ export const userOperations = [
 		default: 'list',
 	},
 	
+	// Fields for create operation
+	...createUserFields.map(field => ({
+		...field,
+		displayOptions: {
+			...field.displayOptions,
+			show: {
+				...(field.displayOptions?.show || {}),
+				operation: ['create'],
+				resource: ['user'],
+			},
+		},
+	})),
+	
 	// Fields for get operation
 	...getUserFields.map(field => ({
 		...field,
@@ -59,19 +72,6 @@ export const userOperations = [
 			show: {
 				...(field.displayOptions?.show || {}),
 				operation: ['get'],
-				resource: ['user'],
-			},
-		},
-	})),
-	
-	// Fields for invite operation
-	...inviteUserFields.map(field => ({
-		...field,
-		displayOptions: {
-			...field.displayOptions,
-			show: {
-				...(field.displayOptions?.show || {}),
-				operation: ['invite'],
 				resource: ['user'],
 			},
 		},
@@ -93,16 +93,16 @@ export const userOperations = [
 
 // Mapping from UI operation values to function implementations
 export const userOperationMapping = {
+	create: createUser,
 	get: getUser,
-	invite: inviteUser,
 	list: listUsers,
 };
 
 // Export operations for direct access
 export {
 	// Operations
+	createUser,
 	getUser,
-	inviteUser,
 	listUsers,
 	
 	// Interfaces
