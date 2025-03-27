@@ -7,8 +7,66 @@ import FormData from 'form-data';
 import { ApiType, getApiUrl } from '../../../apiUtils';
 
 // Define operation field properties specific to createAndReleaseClaim
-// We'll reuse the same claim data input logic from createClaim, but add document fields
 export const createAndReleaseClaimFields: INodeProperties[] = [
+	// Add inputType field at the top level
+	{
+		displayName: 'Input Type',
+		name: 'inputType',
+		type: 'options',
+		options: [
+			{
+				name: 'JSON',
+				value: 'json',
+				description: 'Input JSON object',
+			},
+			{
+				name: 'Fields',
+				value: 'fields',
+				description: 'Input individual fields',
+			},
+		],
+		default: 'fields',
+		description: 'Whether to input data via fields or JSON object',
+		displayOptions: {
+			show: {
+				resource: ['claim'],
+			},
+		},
+	},
+	// Add JSON data field
+	{
+		displayName: 'JSON Data',
+		name: 'jsonData',
+		type: 'json',
+		default: `{
+  "debtor": "c33d083e-ed26-4996-877d-b9dc23416268",
+  "your_reference": "INV-2024-001",
+  "main_claim_amount": {
+    "value": "1000.00",
+    "currency": "EUR"
+  },
+  "total_claim_amount": {
+    "value": "1200.00",
+    "currency": "EUR"
+  },
+  "due_date": "2024-02-15",
+  "subject_matter": "Software Development Services",
+  "documents": [
+    {
+      "binary_property": "data",
+      "file_name": "invoice.pdf"
+    }
+  ]
+}`,
+		required: true,
+		displayOptions: {
+			show: {
+				inputType: ['json'],
+				resource: ['claim'],
+			},
+		},
+		description: 'Claim data as JSON object including documents to upload',
+	},
 	// Only include the Documents field which is specific to createAndReleaseClaim
 	{
 		displayName: 'Documents',
@@ -132,6 +190,44 @@ export function mapDocuments(this: IExecuteFunctions): Array<{ binary_property: 
 		console.log('[mapDocuments] Starting to map document parameters');
 		const inputType = this.getNodeParameter('inputType', 0) as string;
 		console.log(`[mapDocuments] Input type is: ${inputType}`);
+		
+		if (inputType === 'json') {
+			// For JSON input, extract documents from JSON data
+			try {
+				const jsonData = this.getNodeParameter('jsonData', 0, '') as string;
+				const parsedData = JSON.parse(jsonData);
+				
+				if (parsedData && parsedData.documents && Array.isArray(parsedData.documents)) {
+					console.log(`[mapDocuments] Found ${parsedData.documents.length} documents in JSON data`);
+					
+					// Map and validate the documents from JSON
+					const mappedDocs = parsedData.documents.map((doc: any, index: number) => {
+						if (!doc.binary_property) {
+							throw new NodeOperationError(
+								this.getNode(),
+								`Document #${index + 1} in JSON is missing binary_property`
+							);
+						}
+						
+						const mapped = {
+							binary_property: doc.binary_property,
+							file_name: doc.file_name || '',
+						};
+						
+						console.log(`[mapDocuments] Mapped document ${index+1} from JSON:`, mapped);
+						return mapped;
+					});
+					
+					return mappedDocs;
+				}
+				
+				console.log('[mapDocuments] No documents found in JSON data');
+				return [];
+			} catch (error) {
+				console.error('[mapDocuments] Error parsing JSON documents:', error);
+				return [];
+			}
+		}
 		
 		if (inputType !== 'fields') {
 			console.log('[mapDocuments] Not using fields input type, returning empty documents array');

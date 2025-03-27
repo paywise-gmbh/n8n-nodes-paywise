@@ -33,7 +33,125 @@ export const createClaimFields: INodeProperties[] = [
 		displayName: 'JSON Data',
 		name: 'jsonData',
 		type: 'json',
-		default: '{\n  "debtorId": "c33d083e-ed26-4996-877d-b9dc23416268",\n  "reference": "INV-2024-001",\n  "amount": 1000,\n  "dueDate": "2024-02-15",\n  "description": "Software Development Services",\n  "items": [\n    {\n      "description": "Software Development",\n      "quantity": 40,\n      "unit": "hours",\n      "amount": {\n        "value": "800.00",\n        "currency": "EUR"\n      }\n    }\n  ],\n  "additional_charges_amount": {\n    "value": "200.00",\n    "currency": "EUR"\n  },\n  "additional_charges": [\n    {\n      "type": "reminder_fee",\n      "reference": "REM-001",\n      "description": "Late Payment Reminder Fee",\n      "amount": {\n        "value": "200.00",\n        "currency": "EUR"\n      }\n    }\n  ],\n  "payments": [\n    {\n      "reference": "PAY-001",\n      "amount": {\n        "value": "100.00",\n        "currency": "EUR"\n      },\n      "date": "2024-01-30"\n    }\n  ]\n}',
+		default: `{
+  "debtor": "5352c781-9ed1-45cc-bd15-9ec342435ae2",
+  "your_reference": "order-12-A-245-2022",
+  "document_reference": "RE-202200045",
+  "subject_matter": "Warenlieferung Playstation 7",
+  "occurence_date": "2022-09-01",
+  "document_date": "2022-09-01",
+  "due_date": "2022-09-19",
+  "reminder_date": "2022-09-24",
+  "delay_date": "2022-09-24",
+  "total_claim_amount": {
+    "value": "1202.50",
+    "currency": "EUR"
+  },
+  "main_claim_amount": {
+    "value": "1200.00",
+    "currency": "EUR"
+  },
+  "items": [
+    {
+      "description": "Playstation 7",
+      "quantity": 1,
+      "unit": "pcs",
+      "amount": {
+        "value": "1200.00",
+        "currency": "EUR"
+      }
+    }
+  ],
+  "additional_charges_amount": {
+    "value": "2.50",
+    "currency": "EUR"
+  },
+  "additional_charges": [
+    {
+      "your_reference": "string",
+      "document_reference": "MA-2022002",
+      "subject_matter": "Mahngebühren 1. Mahnung",
+      "occurence_date": "2022-09-24",
+      "document_date": "2022-09-24",
+      "due_date": "2022-10-09",
+      "amount": {
+        "value": "2.50",
+        "currency": "EUR"
+      },
+      "events": [
+        {
+          "title": "Reminder delivered to debtor's address.",
+          "occurence": "2019-09-24T06:34:43.206Z",
+          "your_reference": "123456789",
+          "description": "The reminder was delivered to the debtor's home address via Deutsche Post AG. Based on information taken from tracking code DPAG-124-234543",
+          "type": "invoice",
+          "location": "Debtor home address"
+        },
+        {
+          "title": "Sendout of reminder via postal service",
+          "occurence": "2019-09-24T06:34:43.206Z",
+          "your_reference": "123456789",
+          "description": "The reminder was sent via Deutsche Post AG. Tracking code: DPAG-124-234543",
+          "type": "invoice",
+          "location": "Our office"
+        }
+      ]
+    }
+  ],
+  "payments": [
+    {
+      "your_reference": "MY-REF02",
+      "amount": {
+        "value": "105.00",
+        "currency": "EUR"
+      },
+      "value_date": "2023-05-24",
+      "metadata": [
+        {
+          "type": "invoice:reference",
+          "value": "RE-202200045"
+        }
+      ]
+    },
+    {
+      "your_reference": "MY-REF01",
+      "amount": {
+        "value": "90.23",
+        "currency": "EUR"
+      },
+      "value_date": "2023-05-23",
+      "metadata": [
+        {
+          "type": "invoice:reference",
+          "value": "RE-202200045"
+        }
+      ]
+    }
+  ],
+  "starting_approach": "extrajudicial",
+  "claim_disputed": false,
+  "obligation_fulfilled": true,
+  "metadata": [
+    {
+      "type": "invoice:reference",
+      "value": "RE-202200045"
+    },
+    {
+      "type": "comment",
+      "value": "Der Schuldner hat auf keine unserer Kontaktanfragen reagiert."
+    }
+  ],
+  "events": [
+    {
+      "title": "Delivery of goods",
+      "occurence": "2022-09-03T14:15:22Z",
+      "your_reference": "string",
+      "description": "Goods were delivered at debtors address. Based on information from DHL tracking code DHL-123-3421.",
+      "type": "delivery",
+      "location": "Debtor home address"
+    }
+  ]
+}`,
 		required: true,
 		displayOptions: {
 			show: {
@@ -41,7 +159,7 @@ export const createClaimFields: INodeProperties[] = [
 				resource: ['claim'],
 			},
 		},
-		description: 'Claim data as JSON object',
+		description: 'Claim data as JSON object including all required and optional fields according to the API specification',
 	},
 	// Basic Create Claim Fields
 	{
@@ -506,6 +624,69 @@ export const createClaimFields: INodeProperties[] = [
 						default: 'EUR',
 						description: 'Currency of the charge amount',
 					},
+					{
+						displayName: 'Events',
+						name: 'events',
+						placeholder: 'Add Event',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Events related to this additional charge',
+						options: [
+							{
+								name: 'eventsValues',
+								displayName: 'Event',
+								values: [
+									{
+										displayName: 'Title',
+										name: 'title',
+										type: 'string',
+										default: '',
+										required: true,
+										description: 'Title of the event',
+									},
+									{
+										displayName: 'Occurrence Date',
+										name: 'occurence',
+										type: 'string',
+										default: '',
+										required: true,
+										description: 'Date when the event occurred in ISO format (e.g., "2019-08-24T14:15:22Z")',
+									},
+									{
+										displayName: 'Type',
+										name: 'type',
+										type: 'string',
+										default: 'invoice',
+										description: 'Type of event (e.g., "invoice")',
+									},
+									{
+										displayName: 'Your Reference',
+										name: 'your_reference',
+										type: 'string',
+										default: '',
+										description: 'Your reference for this event',
+									},
+									{
+										displayName: 'Description',
+										name: 'description',
+										type: 'string',
+										default: '',
+										description: 'Description of the event',
+									},
+									{
+										displayName: 'Location',
+										name: 'location',
+										type: 'string',
+										default: '',
+										description: 'Location of the event',
+									},
+								],
+							},
+						],
+					},
 				],
 			},
 		],
@@ -569,6 +750,151 @@ export const createClaimFields: INodeProperties[] = [
 						default: '',
 						placeholder: 'YYYY-MM-DD',
 						description: 'Date of the payment in YYYY-MM-DD format',
+					},
+					{
+						displayName: 'Metadata',
+						name: 'metadata',
+						placeholder: 'Add Metadata',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Metadata for this payment',
+						options: [
+							{
+								name: 'metadataValues',
+								displayName: 'Metadata Item',
+								values: [
+									{
+										displayName: 'Type',
+										name: 'type',
+										type: 'string',
+										default: '',
+										required: true,
+										description: 'Type of metadata (e.g., "invoice:reference")',
+									},
+									{
+										displayName: 'Value',
+										name: 'value',
+										type: 'string',
+										default: '',
+										required: true,
+										description: 'Value of the metadata',
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+		],
+	},
+	// Metadata
+	{
+		displayName: 'Metadata',
+		name: 'metadata',
+		placeholder: 'Add Metadata',
+		type: 'fixedCollection',
+		typeOptions: {
+			multipleValues: true,
+		},
+		default: {},
+		displayOptions: {
+			show: {
+				inputType: ['fields'],
+				resource: ['claim'],
+			},
+		},
+		options: [
+			{
+				name: 'metadataValues',
+				displayName: 'Metadata Item',
+				values: [
+					{
+						displayName: 'Type',
+						name: 'type',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Type of metadata (e.g., "invoice:reference")',
+					},
+					{
+						displayName: 'Value',
+						name: 'value',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Value of the metadata',
+					},
+				],
+			},
+		],
+	},
+	// Events
+	{
+		displayName: 'Events',
+		name: 'events',
+		placeholder: 'Add Event',
+		type: 'fixedCollection',
+		typeOptions: {
+			multipleValues: true,
+		},
+		default: {},
+		displayOptions: {
+			show: {
+				inputType: ['fields'],
+				resource: ['claim'],
+			},
+		},
+		options: [
+			{
+				name: 'eventsValues',
+				displayName: 'Event',
+				values: [
+					{
+						displayName: 'Title',
+						name: 'title',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Title of the event',
+					},
+					{
+						displayName: 'Occurrence Date',
+						name: 'occurence',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Date when the event occurred in ISO format (e.g., "2019-08-24T14:15:22Z")',
+					},
+					{
+						displayName: 'Type',
+						name: 'type',
+						type: 'string',
+						default: 'delivery',
+						description: 'Type of event (e.g., "delivery", "invoice")',
+					},
+					{
+						displayName: 'Your Reference',
+						name: 'your_reference',
+						type: 'string',
+						default: '',
+						description: 'Your reference for this event',
+					},
+					{
+						displayName: 'Description',
+						name: 'description',
+						type: 'string',
+						default: '',
+						description: 'Description of the event',
+					},
+					{
+						displayName: 'Location',
+						name: 'location',
+						type: 'string',
+						default: '',
+						description: 'Location of the event',
 					},
 				],
 			},
@@ -851,6 +1177,73 @@ export function validateClaimData(this: IExecuteFunctions, claimData: IClaimData
 					`Payment #${index + 1} has an invalid date format: ${payment.value_date}`
 				);
 			}
+			
+			// Validate payment metadata if present
+			if (payment.metadata && payment.metadata.length > 0) {
+				payment.metadata.forEach((metadata, metaIndex) => {
+					if (!metadata.type) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Payment #${index + 1} Metadata #${metaIndex + 1} is missing a type`
+						);
+					}
+					
+					if (metadata.value === undefined || metadata.value === null) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Payment #${index + 1} Metadata #${metaIndex + 1} is missing a value`
+						);
+					}
+				});
+			}
+		});
+	}
+	
+	// Validate metadata if present
+	if (claimData.metadata && claimData.metadata.length > 0) {
+		claimData.metadata.forEach((metadata, index) => {
+			if (!metadata.type) {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Metadata #${index + 1} is missing a type`
+				);
+			}
+			
+			if (metadata.value === undefined || metadata.value === null) {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Metadata #${index + 1} is missing a value`
+				);
+			}
+		});
+	}
+	
+	// Validate events if present
+	if (claimData.events && claimData.events.length > 0) {
+		claimData.events.forEach((event, index) => {
+			if (!event.title) {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Event #${index + 1} is missing a title`
+				);
+			}
+			
+			if (!event.occurence) {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Event #${index + 1} is missing an occurrence date`
+				);
+			}
+			
+			// Check for valid ISO date format
+			try {
+				new Date(event.occurence).toISOString();
+			} catch (error) {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Event #${index + 1} has an invalid occurrence date format: ${event.occurence}. Should be in ISO format (e.g., "2022-09-03T14:15:22Z")`
+				);
+			}
 		});
 	}
 }
@@ -959,21 +1352,63 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 			due_date: string;
 			amount_value: string;
 			amount_currency: string;
+			events?: {
+				eventsValues: Array<{
+					title: string;
+					occurence: string;
+					type?: string;
+					your_reference?: string;
+					description?: string;
+					location?: string;
+				}>;
+			};
 		}>;
 	};
 
-	const additional_charges = (additionalChargesCollection.additionalChargesValues || []).map((charge) => ({
-		your_reference: charge.your_reference,
-		document_reference: charge.document_reference,
-		subject_matter: charge.subject_matter,
-		occurence_date: formatDate(charge.occurence_date),
-		document_date: formatDate(charge.document_date),
-		due_date: formatDate(charge.due_date),
-		amount: {
-			value: charge.amount_value,
-			currency: charge.amount_currency,
-		},
-	}));
+	const additional_charges = (additionalChargesCollection.additionalChargesValues || []).map((charge) => {
+		const chargeData: IAdditionalCharge = {
+			your_reference: charge.your_reference || undefined,
+			document_reference: charge.document_reference || undefined,
+			subject_matter: charge.subject_matter,
+			occurence_date: formatDate(charge.occurence_date),
+			document_date: formatDate(charge.document_date),
+			due_date: formatDate(charge.due_date),
+			amount: {
+				value: charge.amount_value,
+				currency: charge.amount_currency,
+			},
+		};
+		
+		// Add events if present
+		if (charge.events && charge.events.eventsValues && charge.events.eventsValues.length > 0) {
+			chargeData.events = charge.events.eventsValues.map(event => {
+				const eventData: any = {
+					title: event.title,
+					occurence: event.occurence,
+				};
+				
+				if (event.type) {
+					eventData.type = event.type;
+				}
+				
+				if (event.your_reference) {
+					eventData.your_reference = event.your_reference;
+				}
+				
+				if (event.description) {
+					eventData.description = event.description;
+				}
+				
+				if (event.location) {
+					eventData.location = event.location;
+				}
+				
+				return eventData;
+			});
+		}
+		
+		return chargeData;
+	});
 
 	// Get payments
 	const paymentsCollection = this.getNodeParameter('payments', 0, { paymentsValues: [] }) as {
@@ -982,25 +1417,90 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 			amount_value: string;
 			amount_currency: string;
 			value_date: string;
+			metadata?: {
+				metadataValues: Array<{
+					type: string;
+					value: string;
+				}>;
+			};
 		}>;
 	};
 
-	const payments = (paymentsCollection.paymentsValues || []).map((payment) => ({
-		your_reference: payment.your_reference,
-		amount: {
-			value: payment.amount_value,
-			currency: payment.amount_currency,
-		},
-		value_date: formatDate(payment.value_date) as string,
+	const payments = (paymentsCollection.paymentsValues || []).map((payment) => {
+		const paymentData: IPayment = {
+			your_reference: payment.your_reference,
+			amount: {
+				value: payment.amount_value,
+				currency: payment.amount_currency,
+			},
+			value_date: formatDate(payment.value_date) as string,
+		};
+
+		// Add metadata if present
+		if (payment.metadata && payment.metadata.metadataValues && payment.metadata.metadataValues.length > 0) {
+			paymentData.metadata = payment.metadata.metadataValues.map(item => ({
+				type: item.type,
+				value: item.value,
+			}));
+		}
+
+		return paymentData;
+	});
+
+	// Get metadata
+	const metadataCollection = this.getNodeParameter('metadata', 0, { metadataValues: [] }) as {
+		metadataValues: Array<{
+			type: string;
+			value: string;
+		}>;
+	};
+
+	const metadata = (metadataCollection.metadataValues || []).map((item) => ({
+		type: item.type,
+		value: item.value,
 	}));
 
-	// Combine all data
+	// Get events
+	const eventsCollection = this.getNodeParameter('events', 0, { eventsValues: [] }) as {
+		eventsValues: Array<{
+			title: string;
+			occurence: string;
+			type?: string;
+			your_reference?: string;
+			description?: string;
+			location?: string;
+		}>;
+	};
+
+	const events = (eventsCollection.eventsValues || []).map((event) => {
+		const eventData: any = {
+			title: event.title,
+			occurence: event.occurence,
+		};
+		
+		if (event.type) {
+			eventData.type = event.type;
+		}
+		
+		if (event.your_reference) {
+			eventData.your_reference = event.your_reference;
+		}
+		
+		if (event.description) {
+			eventData.description = event.description;
+		}
+		
+		if (event.location) {
+			eventData.location = event.location;
+		}
+		
+		return eventData;
+	});
+
+	// Create the claim data object
 	const claimData: IClaimData = {
 		debtor,
 		your_reference,
-		subject_matter,
-		due_date,
-		// Required amount fields
 		main_claim_amount: {
 			value: main_claim_amount_value,
 			currency: main_claim_amount_currency,
@@ -1009,47 +1509,57 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 			value: total_claim_amount_value,
 			currency: total_claim_amount_currency,
 		},
-		// Add new required fields
+		due_date,
+		subject_matter,
 		starting_approach,
 		claim_disputed,
 		obligation_fulfilled,
 	};
 
-	// Only add optional fields if they exist
-	if (occurence_date) {
-		claimData.occurence_date = occurence_date;
-	}
-	
+	// Add optional fields if they have values
 	if (document_reference) {
 		claimData.document_reference = document_reference;
 	}
-	
+
+	if (occurence_date) {
+		claimData.occurence_date = occurence_date;
+	}
+
 	if (document_date) {
 		claimData.document_date = document_date;
 	}
-	
+
 	if (reminder_date) {
 		claimData.reminder_date = reminder_date;
 	}
-	
+
 	if (delay_date) {
 		claimData.delay_date = delay_date;
 	}
 
+	// Add additional fields if present
 	if (items.length > 0) {
 		claimData.items = items;
-	}
-
-	if (additional_charges_amount) {
-		claimData.additional_charges_amount = additional_charges_amount;
 	}
 
 	if (additional_charges.length > 0) {
 		claimData.additional_charges = additional_charges;
 	}
 
+	if (additional_charges_amount) {
+		claimData.additional_charges_amount = additional_charges_amount;
+	}
+
 	if (payments.length > 0) {
 		claimData.payments = payments;
+	}
+
+	if (metadata.length > 0) {
+		claimData.metadata = metadata;
+	}
+
+	if (events.length > 0) {
+		claimData.events = events;
 	}
 
 	return claimData;

@@ -29,6 +29,20 @@ export interface IOrganization {
 	name: string;
 }
 
+export interface IMetadata {
+	type: string;
+	value: string;
+}
+
+export interface IEvent {
+	type: string;
+	title: string;
+	occurence: string;
+	your_reference?: string;
+	description?: string;
+	location?: string;
+}
+
 export interface IDebtorData extends IDataObject {
 	your_reference: string;
 	acting_as: string;
@@ -37,4 +51,6 @@ export interface IDebtorData extends IDataObject {
 	addresses: IAddress[];
 	communication_channels?: ICommunicationChannel[];
 	bank_accounts?: IBankAccount[];
+	metadata?: IMetadata[];
+	events?: IEvent[];
 } 

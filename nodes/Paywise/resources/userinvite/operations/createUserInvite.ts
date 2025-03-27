@@ -6,11 +6,55 @@ import { IUserInviteData } from '../userinvite.interfaces';
 // Define operation field properties
 export const createUserInviteFields: INodeProperties[] = [
 	{
+		displayName: 'Input Method',
+		name: 'inputMethod',
+		type: 'options',
+		options: [
+			{
+				name: 'Form Fields',
+				value: 'formFields',
+				description: 'Configure properties via form fields',
+			},
+			{
+				name: 'JSON',
+				value: 'json',
+				description: 'Configure properties via JSON',
+			},
+		],
+		default: 'formFields',
+		description: 'Configure how to input user invite data',
+	},
+	{
+		displayName: 'JSON Data',
+		name: 'jsonData',
+		type: 'json',
+		default: `{
+  "email": "user@example.com",
+  "company": "company-uuid",
+  "first_name": "John",
+  "last_name": "Doe",
+  "success_url": "https://your-domain.com/success",
+  "failure_url": "https://your-domain.com/failure"
+}`,
+		required: true,
+		displayOptions: {
+			show: {
+				inputMethod: ['json'],
+			},
+		},
+		description: 'User invite data as JSON object. Required fields: email, company, success_url, failure_url',
+	},
+	{
 		displayName: 'Email',
 		name: 'email',
 		type: 'string',
 		default: '',
 		required: true,
+		displayOptions: {
+			show: {
+				inputMethod: ['formFields'],
+			},
+		},
 		description: 'Email of the user to invite',
 	},
 	{
@@ -19,7 +63,38 @@ export const createUserInviteFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
-		description: 'UUID of the company the user will join',
+		displayOptions: {
+			show: {
+				inputMethod: ['formFields'],
+			},
+		},
+		description: 'ID of the company to add the user to',
+	},
+	{
+		displayName: 'First Name',
+		name: 'first_name',
+		type: 'string',
+		default: '',
+		required: false,
+		displayOptions: {
+			show: {
+				inputMethod: ['formFields'],
+			},
+		},
+		description: 'First name of the user',
+	},
+	{
+		displayName: 'Last Name',
+		name: 'last_name',
+		type: 'string',
+		default: '',
+		required: false,
+		displayOptions: {
+			show: {
+				inputMethod: ['formFields'],
+			},
+		},
+		description: 'Last name of the user',
 	},
 	{
 		displayName: 'Success URL',
@@ -27,7 +102,12 @@ export const createUserInviteFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
-		description: 'URL for successful onboarding',
+		displayOptions: {
+			show: {
+				inputMethod: ['formFields'],
+			},
+		},
+		description: 'URL to redirect the user to after successful invitation acceptance',
 	},
 	{
 		displayName: 'Failure URL',
@@ -35,30 +115,12 @@ export const createUserInviteFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
-		description: 'URL for failed onboarding',
-	},
-	{
-		displayName: 'Additional Fields',
-		name: 'additionalFields',
-		type: 'collection',
-		placeholder: 'Add Field',
-		default: {},
-		options: [
-			{
-				displayName: 'First Name',
-				name: 'first_name',
-				type: 'string',
-				default: '',
-				description: 'First name of the user to invite',
+		displayOptions: {
+			show: {
+				inputMethod: ['formFields'],
 			},
-			{
-				displayName: 'Last Name',
-				name: 'last_name',
-				type: 'string',
-				default: '',
-				description: 'Last name of the user to invite',
-			},
-		],
+		},
+		description: 'URL to redirect the user to if invitation acceptance fails',
 	},
 ];
 
@@ -66,45 +128,54 @@ export async function createUserInvite(this: IExecuteFunctions): Promise<JsonObj
 	console.log('[createUserInvite] operation function called');
 	
 	try {
-		// Get parameters
-		const inviteParams = this.getNodeParameter('inviteParams', 0, {}) as IUserInviteData;
-		const additionalFields = this.getNodeParameter('additionalFields', 0, {}) as Partial<IUserInviteData>;
-		
-		// Check required fields
-		if (!inviteParams.email) {
-			throw new Error('Email is required');
+		// Get input method and prepare invite data
+		const inputMethod = this.getNodeParameter('inputMethod', 0) as string;
+		let inviteData: JsonObject = {};
+
+		if (inputMethod === 'json') {
+			// Get data from JSON input
+			const jsonData = this.getNodeParameter('jsonData', 0) as string;
+			
+			// Parse JSON string to object
+			try {
+				inviteData = JSON.parse(jsonData);
+			} catch (error) {
+				throw new Error(`Invalid JSON data: ${(error as Error).message}`);
+			}
+			
+			// Validate required fields in JSON
+			const requiredFields = ['email', 'company', 'success_url', 'failure_url'];
+			for (const field of requiredFields) {
+				if (!inviteData[field]) {
+					throw new Error(`Required field "${field}" is missing in JSON data`);
+				}
+			}
+		} else {
+			// Get data from form fields
+			inviteData = {
+				email: this.getNodeParameter('email', 0) as string,
+				company: this.getNodeParameter('company', 0) as string,
+				success_url: this.getNodeParameter('success_url', 0) as string,
+				failure_url: this.getNodeParameter('failure_url', 0) as string,
+			};
+			
+			// Add optional fields if they exist
+			const first_name = this.getNodeParameter('first_name', 0, '') as string;
+			if (first_name) {
+				inviteData.first_name = first_name;
+			}
+			
+			const last_name = this.getNodeParameter('last_name', 0, '') as string;
+			if (last_name) {
+				inviteData.last_name = last_name;
+			}
 		}
-		if (!inviteParams.company) {
-			throw new Error('Company ID is required');
-		}
-		if (!inviteParams.success_url) {
-			throw new Error('Success URL is required');
-		}
-		if (!inviteParams.failure_url) {
-			throw new Error('Failure URL is required');
-		}
-		
-		// Build the invite data
-		const inviteData: IUserInviteData = {
-			email: inviteParams.email,
-			company: inviteParams.company,
-			success_url: inviteParams.success_url,
-			failure_url: inviteParams.failure_url,
-		};
-		
-		// Add optional fields if provided
-		if (additionalFields.first_name) {
-			inviteData.first_name = additionalFields.first_name;
-		}
-		if (additionalFields.last_name) {
-			inviteData.last_name = additionalFields.last_name;
-		}
-		
+
 		// Get API URL
 		const url = await getApiUrl.call(
 			this,
 			ApiType.PARTNER,
-			'userinvites',
+			'user_invites',
 		);
 		
 		// Make API request
@@ -115,7 +186,7 @@ export async function createUserInvite(this: IExecuteFunctions): Promise<JsonObj
 				'Accept': 'application/json',
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify(inviteData),
+			body: inviteData,
 		};
 		
 		console.log('[createUserInvite] Making authenticated API request to:', url);

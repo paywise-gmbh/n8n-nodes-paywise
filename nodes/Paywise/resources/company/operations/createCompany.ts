@@ -444,31 +444,44 @@ export async function createCompany(this: IExecuteFunctions): Promise<JsonObject
 			
 		} else {
 			// Get company data from form fields
-			const companyData = this.getNodeParameter('companyData', 0, {});
+			const name = this.getNodeParameter('name', 0) as string;
+			const phone = this.getNodeParameter('phone', 0) as string;
+			const legal_form = this.getNodeParameter('legal_form', 0) as string;
+			const tax_deduction_eligibility = this.getNodeParameter('tax_deduction_eligibility', 0) as string;
+			
+			// Get address details
+			const addressDetails = this.getNodeParameter('addressDetails', 0, { address: {} }) as {
+				address: {
+					street: string;
+					zip: string;
+					city: string;
+					country: string;
+				}
+			};
 			
 			// Verify required fields
-			if (!companyData.name) {
+			if (!name) {
 				throw new Error('Company name is required');
 			}
 			
-			if (!companyData.phone) {
+			if (!phone) {
 				throw new Error('Company phone is required');
 			}
 			
-			if (!companyData.legal_form) {
+			if (!legal_form) {
 				throw new Error('Company legal form is required');
 			}
 			
-			if (!companyData.tax_deduction_eligibility) {
+			if (!tax_deduction_eligibility) {
 				throw new Error('Tax deduction eligibility is required');
 			}
 			
 			// Verify required address information exists
-			if (!companyData.addressDetails || !companyData.addressDetails.address) {
+			if (!addressDetails || !addressDetails.address) {
 				throw new Error('Company address is required');
 			}
 			
-			const addressData = companyData.addressDetails.address;
+			const addressData = addressDetails.address;
 			
 			// Validate address fields
 			if (!addressData.street) {
@@ -489,57 +502,60 @@ export async function createCompany(this: IExecuteFunctions): Promise<JsonObject
 			
 			// Build company data object with required address
 			company = {
-				name: companyData.name as string,
-				phone: companyData.phone as string,
-				legal_form: companyData.legal_form as string,
-				tax_deduction_eligibility: companyData.tax_deduction_eligibility as string,
+				name,
+				phone,
+				legal_form,
+				tax_deduction_eligibility,
 				address: {
-					street: addressData.street as string,
-					zip: addressData.zip as string,
-					city: addressData.city as string,
-					country: addressData.country as string,
+					street: addressData.street,
+					zip: addressData.zip,
+					city: addressData.city,
+					country: addressData.country,
 				},
 			};
 			
 			// Add optional fields
-			if (companyData.additionalFields) {
-				const additionalFields = companyData.additionalFields as JsonObject;
-				
-				if (additionalFields.vat_number) {
-					company.vat_number = additionalFields.vat_number as string;
-				}
-				
-				if (additionalFields.default_claim_type) {
-					company.default_claim_type = additionalFields.default_claim_type as string;
-				}
-				
-				if (additionalFields.iban) {
-					company.iban = additionalFields.iban as string;
-				}
-				
-				if (additionalFields.data_submission_completed !== undefined) {
-					company.data_submission_completed = additionalFields.data_submission_completed as boolean;
-				}
+			const additionalFields = this.getNodeParameter('additionalFields', 0, {}) as JsonObject;
+			
+			if (additionalFields.vat_number) {
+				company.vat_number = additionalFields.vat_number as string;
+			}
+			
+			if (additionalFields.default_claim_type) {
+				company.default_claim_type = additionalFields.default_claim_type as string;
+			}
+			
+			if (additionalFields.iban) {
+				company.iban = additionalFields.iban as string;
+			}
+			
+			if (additionalFields.data_submission_completed !== undefined) {
+				company.data_submission_completed = additionalFields.data_submission_completed as boolean;
 			}
 			
 			// Add legal representatives
-			if (companyData.legalRepresentatives && companyData.legalRepresentatives.representatives) {
-				const representatives = companyData.legalRepresentatives.representatives as Array<{ type: string; name: string }>;
-				company.legal_representatives = representatives.map(rep => ({
+			const legalRepresentatives = this.getNodeParameter('legalRepresentatives', 0, { representatives: [] }) as {
+				representatives: Array<{ type: string; name: string }>;
+			};
+			
+			if (legalRepresentatives && legalRepresentatives.representatives && legalRepresentatives.representatives.length > 0) {
+				company.legal_representatives = legalRepresentatives.representatives.map(rep => ({
 					type: rep.type,
 					name: rep.name,
 				}));
 			}
 			
 			// Add notification channels
-			if (companyData.notificationChannels && companyData.notificationChannels.channels) {
-				const channels = companyData.notificationChannels.channels as Array<{
+			const notificationChannels = this.getNodeParameter('notificationChannels', 0, { channels: [] }) as {
+				channels: Array<{
 					channel_type: string;
 					value: string;
 					notification_types: string[];
 				}>;
-				
-				company.notification_channels = channels.map(channel => ({
+			};
+			
+			if (notificationChannels && notificationChannels.channels && notificationChannels.channels.length > 0) {
+				company.notification_channels = notificationChannels.channels.map(channel => ({
 					channel_type: channel.channel_type,
 					value: channel.value,
 					notification_types: channel.notification_types,

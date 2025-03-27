@@ -23,6 +23,11 @@ export const createDebtorFields: INodeProperties[] = [
 		],
 		default: 'fields',
 		description: 'Whether to input data via fields or JSON object',
+		displayOptions: {
+			show: {
+				resource: ['debtor'],
+			},
+		},
 	},
 	{
 		displayName: 'JSON Data',
@@ -56,15 +61,32 @@ export const createDebtorFields: INodeProperties[] = [
       "iban": "DE53500105178977267179",
       "bic": "BYLADEM1001"
     }
+  ],
+  "metadata": [
+    {
+      "type": "user:reference",
+      "value": "string"
+    }
+  ],
+  "events": [
+    {
+      "type": "registration",
+      "title": "string",
+      "occurence": "2019-08-24T14:15:22Z",
+      "your_reference": "string",
+      "description": "string",
+      "location": "string"
+    }
   ]
 }`,
 		required: true,
 		displayOptions: {
 			show: {
 				inputType: ['json'],
+				resource: ['debtor'],
 			},
 		},
-		description: 'Debtor data as JSON object',
+		description: 'Debtor data as JSON object. Must include your_reference, acting_as, addresses, and either person or organization details.',
 	},
 	{
 		displayName: 'Debtor Type',
@@ -85,6 +107,7 @@ export const createDebtorFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
+				resource: ['debtor'],
 			},
 		},
 		description: 'Whether the debtor is a person or an organization',
@@ -98,6 +121,7 @@ export const createDebtorFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
+				resource: ['debtor'],
 			},
 		},
 		description: 'Your reference for this debtor',
@@ -360,6 +384,115 @@ export const createDebtorFields: INodeProperties[] = [
 			},
 		],
 	},
+	// Metadata
+	{
+		displayName: 'Metadata',
+		name: 'metadata',
+		placeholder: 'Add Metadata',
+		type: 'fixedCollection',
+		typeOptions: {
+			multipleValues: true,
+		},
+		default: {},
+		displayOptions: {
+			show: {
+				inputType: ['fields'],
+			},
+		},
+		options: [
+			{
+				name: 'metadataValues',
+				displayName: 'Metadata Item',
+				values: [
+					{
+						displayName: 'Type',
+						name: 'type',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Type of metadata (e.g., "user:reference")',
+					},
+					{
+						displayName: 'Value',
+						name: 'value',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Value of the metadata',
+					},
+				],
+			},
+		],
+	},
+	// Events
+	{
+		displayName: 'Events',
+		name: 'events',
+		placeholder: 'Add Event',
+		type: 'fixedCollection',
+		typeOptions: {
+			multipleValues: true,
+		},
+		default: {},
+		displayOptions: {
+			show: {
+				inputType: ['fields'],
+			},
+		},
+		options: [
+			{
+				name: 'eventsValues',
+				displayName: 'Event',
+				values: [
+					{
+						displayName: 'Type',
+						name: 'type',
+						type: 'string',
+						default: 'registration',
+						required: true,
+						description: 'Type of event (e.g., "registration")',
+					},
+					{
+						displayName: 'Title',
+						name: 'title',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Title of the event',
+					},
+					{
+						displayName: 'Occurrence Date',
+						name: 'occurence',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Date when the event occurred in ISO format (e.g., "2019-08-24T14:15:22Z")',
+					},
+					{
+						displayName: 'Your Reference',
+						name: 'your_reference',
+						type: 'string',
+						default: '',
+						description: 'Your reference for this event',
+					},
+					{
+						displayName: 'Description',
+						name: 'description',
+						type: 'string',
+						default: '',
+						description: 'Description of the event',
+					},
+					{
+						displayName: 'Location',
+						name: 'location',
+						type: 'string',
+						default: '',
+						description: 'Location of the event',
+					},
+				],
+			},
+		],
+	},
 ];
 
 /**
@@ -369,47 +502,76 @@ export function mapToDebtorData(this: IExecuteFunctions): IDebtorData {
 	const inputType = this.getNodeParameter('inputType', 0) as string;
 	
 	if (inputType === 'json') {
-		return JSON.parse(this.getNodeParameter('jsonData', 0) as string) as IDebtorData;
+		try {
+			const jsonDataString = this.getNodeParameter('jsonData', 0) as string;
+			const jsonData = JSON.parse(jsonDataString) as IDebtorData;
+			
+			// Validate required fields in JSON data
+			if (!jsonData.your_reference) {
+				throw new Error('JSON data must include your_reference');
+			}
+			
+			if (!jsonData.person && !jsonData.organization) {
+				throw new Error('JSON data must include either person or organization');
+			}
+			
+			// If person is provided, validate required person fields
+			if (jsonData.person) {
+				if (!jsonData.person.first_name) {
+					throw new Error('Person data must include first_name');
+				}
+				if (!jsonData.person.last_name) {
+					throw new Error('Person data must include last_name');
+				}
+			}
+			
+			// If organization is provided, validate required organization fields
+			if (jsonData.organization && !jsonData.organization.name) {
+				throw new Error('Organization data must include name');
+			}
+			
+			return jsonData;
+		} catch (error) {
+			if (error instanceof SyntaxError) {
+				throw new Error(`Invalid JSON: ${error.message}`);
+			}
+			throw error;
+		}
 	}
 	
+	// Input type is 'fields'
 	const debtorType = this.getNodeParameter('debtor_type', 0) as string;
-	const your_reference = this.getNodeParameter('your_reference', 0) as string;
-	const acting_as = this.getNodeParameter('acting_as', 0) as string;
-
-	// Create base debtor data
+	
 	const debtorData: IDebtorData = {
-		your_reference,
-		acting_as,
-		addresses: [],
+		your_reference: this.getNodeParameter('your_reference', 0) as string,
+		acting_as: this.getNodeParameter('acting_as', 0) as string,
+		addresses: [], // Add empty addresses array to satisfy interface requirement
 	};
-
-	// Handle person or organization specific fields
+	
+	// Add person or organization data based on debtor type
 	if (debtorType === 'person') {
-		const salutation = this.getNodeParameter('salutation', 0, '') as string;
-		const first_name = this.getNodeParameter('first_name', 0) as string;
-		const last_name = this.getNodeParameter('last_name', 0) as string;
-		const birth_date = this.getNodeParameter('birth_date', 0, '') as string;
-
 		const person: IPerson = {
-			first_name,
-			last_name,
+			first_name: this.getNodeParameter('first_name', 0) as string,
+			last_name: this.getNodeParameter('last_name', 0) as string,
 		};
-
+		
+		const salutation = this.getNodeParameter('salutation', 0, '') as string;
 		if (salutation) {
 			person.salutation = salutation;
 		}
-
-		if (birth_date) {
-			person.birth_date = birth_date;
+		
+		const birthDate = this.getNodeParameter('birth_date', 0, '') as string;
+		if (birthDate) {
+			person.birth_date = birthDate;
 		}
-
+		
 		debtorData.person = person;
 	} else if (debtorType === 'organization') {
-		const organization_name = this.getNodeParameter('organization_name', 0) as string;
-		
-		debtorData.organization = {
-			name: organization_name,
+		const organization: IOrganization = {
+			name: this.getNodeParameter('organization_name', 0) as string,
 		};
+		
+		debtorData.organization = organization;
 	}
 
 	// Get addresses
@@ -462,6 +624,53 @@ export function mapToDebtorData(this: IExecuteFunctions): IDebtorData {
 		return bankAccount;
 	});
 
+	// Get metadata
+	const metadataCollection = this.getNodeParameter('metadata', 0, { metadataValues: [] }) as {
+		metadataValues: Array<{
+			type: string;
+			value: string;
+		}>;
+	};
+
+	const metadata = (metadataCollection.metadataValues || []).map((item) => ({
+		type: item.type,
+		value: item.value,
+	}));
+
+	// Get events
+	const eventsCollection = this.getNodeParameter('events', 0, { eventsValues: [] }) as {
+		eventsValues: Array<{
+			type: string;
+			title: string;
+			occurence: string;
+			your_reference?: string;
+			description?: string;
+			location?: string;
+		}>;
+	};
+
+	const events = (eventsCollection.eventsValues || []).map((event) => {
+		const eventData: any = {
+			type: event.type,
+			title: event.title,
+			occurence: event.occurence,
+		};
+		
+		if (event.your_reference) {
+			eventData.your_reference = event.your_reference;
+		}
+		
+		if (event.description) {
+			eventData.description = event.description;
+		}
+		
+		if (event.location) {
+			eventData.location = event.location;
+		}
+		
+		return eventData;
+	});
+
 	// Combine all data
 	debtorData.addresses = addresses;
 
@@ -471,6 +680,14 @@ export function mapToDebtorData(this: IExecuteFunctions): IDebtorData {
 
 	if (bankAccounts.length > 0) {
 		debtorData.bank_accounts = bankAccounts;
+	}
+
+	if (metadata.length > 0) {
+		debtorData.metadata = metadata;
+	}
+
+	if (events.length > 0) {
+		debtorData.events = events;
 	}
 
 	return debtorData;

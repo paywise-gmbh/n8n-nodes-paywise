@@ -41,7 +41,14 @@ export const createUserFields: INodeProperties[] = [
   "first_name": "Max",
   "last_name": "Mustermann",
   "company": "6196ba03-83f2-46ea-83e1-a087bd0c5acc",
-  "skip_email_verification": true
+  "skip_email_verification": true,
+  "notification_channels": [
+    {
+      "channel_type": "EMAIL",
+      "value": "user@example.com",
+      "notification_types": ["STATUS_UPDATE", "REQUESTS_TO_CLIENT", "STATEMENTS"]
+    }
+  ]
 }`,
 	},
 	// Basic user information - shown only when using fields input method
@@ -145,29 +152,28 @@ export const createUserFields: INodeProperties[] = [
 						name: 'channel_type',
 						type: 'options',
 						options: [
-							{ name: 'Email', value: 'email' },
-							{ name: 'SMS', value: 'sms' },
+							{ name: 'Email', value: 'EMAIL' },
 						],
-						default: 'email',
-						description: 'Type of notification channel',
+						default: 'EMAIL',
+						description: 'Type of notification channel. Currently only EMAIL is supported by the API.',
 					},
 					{
 						displayName: 'Value',
 						name: 'value',
 						type: 'string',
 						default: '',
-						description: 'Email address or phone number for notifications',
+						description: 'Email address for notifications',
 					},
 					{
 						displayName: 'Notification Types',
 						name: 'notification_types',
 						type: 'multiOptions',
 						options: [
-							{ name: 'Claim Created', value: 'claim_created' },
-							{ name: 'Claim Paid', value: 'claim_paid' },
-							{ name: 'Claim Status Changed', value: 'claim_status_changed' },
+							{ name: 'Status Updates', value: 'STATUS_UPDATE' },
+							{ name: 'Requests to Client', value: 'REQUESTS_TO_CLIENT' },
+							{ name: 'Statements', value: 'STATEMENTS' },
 						],
-						default: ['claim_status_changed'],
+						default: ['STATUS_UPDATE'],
 						description: 'Types of notifications to send through this channel',
 					},
 				],
