@@ -90,41 +90,41 @@ export async function getApiUrl(
 }
 
 /**
- * Adds "Act on Behalf" header if specified in the parameters
+ * Adds "Act on Behalf of Client" header if specified in the parameters
  * This is only applicable for Case Management API
  * @param this The execute functions context
  * @param options The request options
  * @param itemIndex The index of the item being processed
  * @returns The updated request options
  */
-export function addActOnBehalfHeader(
+export function addActOnBehalfOfClientHeader(
 	this: IExecuteFunctions, 
 	options: { headers: Record<string, string> },
 	itemIndex: number,
 ): { headers: Record<string, string> } {
 	try {
-		// Check if "act on behalf" is enabled
-		const actOnBehalf = this.getNodeParameter('actOnBehalf', itemIndex, false) as boolean;
+		// Check if "act on behalf of client" is enabled
+		const actOnBehalfOfClient = this.getNodeParameter('actOnBehalfOfClient', itemIndex, false) as boolean;
 		
-		if (actOnBehalf) {
-			const clientUserId = this.getNodeParameter('clientUserId', itemIndex, '') as string;
+		if (actOnBehalfOfClient) {
+			const userId = this.getNodeParameter('userId', itemIndex, '') as string;
 			
-			if (!clientUserId) {
-				console.warn('[addActOnBehalfHeader] Act on behalf is enabled but clientUserId is not provided');
+			if (!userId) {
+				console.warn('[addActOnBehalfOfClientHeader] Act on behalf of client is enabled but userId is not provided');
 				return options;
 			}
 			
 			// Add the X-User-Id header
-			options.headers['X-User-Id'] = clientUserId;
-			console.log(`[addActOnBehalfHeader] Added X-User-Id header: ${clientUserId}`);
+			options.headers['X-User-Id'] = userId;
+			console.log(`[addActOnBehalfOfClientHeader] Added X-User-Id header: ${userId}`);
 		} else {
-			console.log('[addActOnBehalfHeader] Act on behalf is not enabled');
+			console.log('[addActOnBehalfOfClientHeader] Act on behalf of client is not enabled');
 		}
 		
 		return options;
 	} catch (error) {
 		// Log the error but don't throw it to maintain backward compatibility
-		console.error('[addActOnBehalfHeader] Error adding Act on Behalf header:', error);
+		console.error('[addActOnBehalfOfClientHeader] Error adding Act on Behalf of Client header:', error);
 		return options;
 	}
 } 

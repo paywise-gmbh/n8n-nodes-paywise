@@ -1,10 +1,30 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl } from '../../../apiUtils';
+import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
 
 // Define operation field properties
 export const getInfoFields: INodeProperties[] = [
-	// No fields needed for this operation
+	// No required fields for this operation, but adding client switch
+	{
+		displayName: 'Act on Behalf of Client',
+		name: 'actOnBehalfOfClient',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to act on behalf of a client company when making the Case Management API request',
+	},
+	{
+		displayName: 'User ID',
+		name: 'userId',
+		type: 'string',
+		default: '',
+		description: 'ID of the user to act on behalf of',
+		required: true,
+		displayOptions: {
+			show: {
+				actOnBehalfOfClient: [true],
+			},
+		},
+	},
 ];
 
 /**
@@ -31,17 +51,20 @@ export async function getInfo(this: IExecuteFunctions): Promise<JsonObject> {
 			// Make API request
 			const caseManagementOptions = {
 				method: 'GET',
-				url: caseManagementUrl + '/', // Ensure trailing slash
+				url: caseManagementUrl,
 				headers: {
 					'Accept': 'application/json',
 				},
 			};
 			
+			// Add X-User-Id header if acting on behalf of client (only for Case Management API)
+			const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, caseManagementOptions, 0);
+			
 			console.log('[getInfo] Making authenticated API request to Case Management API');
 			response = await this.helpers.requestWithAuthentication.call(
 				this,
 				'paywiseApi',
-				caseManagementOptions,
+				optionsWithHeaders,
 			);
 			console.log('[getInfo] Case Management API response received successfully');
 		} catch (e) {
@@ -55,7 +78,7 @@ export async function getInfo(this: IExecuteFunctions): Promise<JsonObject> {
 			// Make API request
 			const partnerOptions = {
 				method: 'GET',
-				url: partnerUrl + '/', // Ensure trailing slash
+				url: partnerUrl, 
 				headers: {
 					'Accept': 'application/json',
 				},

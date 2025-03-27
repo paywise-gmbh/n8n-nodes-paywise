@@ -4,7 +4,7 @@ import { IClaimData } from '../claim.interfaces';
 import { createClaim, createClaimFields, mapToClaimData, validateClaimData } from './createClaim';
 import { mapUploadDocumentParams } from './uploadDocument';
 import FormData from 'form-data';
-import { ApiType, getApiUrl } from '../../../apiUtils';
+import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
 
 // Define operation field properties specific to createAndReleaseClaim
 export const createAndReleaseClaimFields: INodeProperties[] = [
@@ -105,6 +105,32 @@ export const createAndReleaseClaimFields: INodeProperties[] = [
 				],
 			},
 		],
+	},
+	{
+		displayName: 'Act on Behalf of Client',
+		name: 'actOnBehalfOfClient',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to act on behalf of a client company when making this request',
+		displayOptions: {
+			show: {
+				resource: ['claim'],
+			},
+		},
+	},
+	{
+		displayName: 'User ID',
+		name: 'userId',
+		type: 'string',
+		default: '',
+		description: 'ID of the user to act on behalf of',
+		required: true,
+		displayOptions: {
+			show: {
+				actOnBehalfOfClient: [true],
+				resource: ['claim'],
+			},
+		},
 	},
 ];
 
@@ -357,12 +383,15 @@ async function uploadClaimDocument(
 		}
 	};
 	
+	// Add X-User-Id header if acting on behalf of client
+	const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+	
 	console.log(`[uploadClaimDocument] Sending request to: ${options.url}`);
 	try {
 		console.log('[uploadClaimDocument] Request options:', JSON.stringify({
 			method: options.method,
 			url: options.url,
-			headers: options.headers,
+			headers: optionsWithHeaders.headers,
 			hasFormData: !!options.formData,
 			formDataKeys: options.formData ? Object.keys(options.formData) : []
 		}));
@@ -370,7 +399,7 @@ async function uploadClaimDocument(
 		const response = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
-			options,
+			optionsWithHeaders,
 		);
 		
 		console.log(`[uploadClaimDocument] Document upload successful`);
@@ -410,11 +439,14 @@ async function releaseExistingClaim(this: IExecuteFunctions, claimId: string): P
 		},
 	};
 	
+	// Add X-User-Id header if acting on behalf of client
+	const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, releaseOptions, 0);
+	
 	console.log('[releaseExistingClaim] Releasing claim');
 	const releaseResponse = await this.helpers.requestWithAuthentication.call(
 		this,
 		'paywiseApi',
-		releaseOptions,
+		optionsWithHeaders,
 	);
 	
 	return JSON.parse(releaseResponse);
@@ -483,6 +515,9 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 			body: claimData,
 		};
 		
+		// Add X-User-Id header if acting on behalf of client
+		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, createOptions, 0);
+		
 		console.log('[createAndReleaseClaim] Making API request to create claim...');
 		console.log('[createAndReleaseClaim] Request URL:', createOptions.url);
 		console.log('[createAndReleaseClaim] Request method:', createOptions.method);
@@ -491,7 +526,7 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 		const createResponse = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
-			createOptions,
+			optionsWithHeaders,
 		);
 		
 		console.log('[createAndReleaseClaim] Claim created successfully');

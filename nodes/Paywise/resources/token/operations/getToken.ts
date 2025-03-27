@@ -12,7 +12,7 @@ export async function getToken(this: IExecuteFunctions): Promise<JsonObject> {
 		// Make API request
 		const options = {
 			method: 'GET',
-			url: url + '/', // Ensure trailing slash
+			url: url,
 			headers: {
 				'Accept': 'application/json',
 			},

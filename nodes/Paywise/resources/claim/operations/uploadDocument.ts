@@ -1,7 +1,7 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
 import FormData from 'form-data';
-import { ApiType, getApiUrl } from '../../../apiUtils';
+import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
 
 // Define operation field properties
 export const uploadDocumentFields: INodeProperties[] = [
@@ -20,6 +20,26 @@ export const uploadDocumentFields: INodeProperties[] = [
 		default: 'data',
 		required: true,
 		description: 'Name of the binary property containing the file data',
+	},
+	{
+		displayName: 'Act on Behalf of Client',
+		name: 'actOnBehalfOfClient',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to act on behalf of a client company when making this request',
+	},
+	{
+		displayName: 'User ID',
+		name: 'userId',
+		type: 'string',
+		default: '',
+		description: 'ID of the user to act on behalf of',
+		required: true,
+		displayOptions: {
+			show: {
+				actOnBehalfOfClient: [true],
+			},
+		},
 	},
 ];
 
@@ -122,10 +142,13 @@ export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObjec
 			}
 		};
 		
+		// Add X-User-Id header if acting on behalf of client
+		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		
 		console.log('[uploadDocument] Request prepared:', JSON.stringify({
 			method: options.method,
 			url: options.url,
-			headers: options.headers,
+			headers: optionsWithHeaders.headers,
 			hasFormData: !!options.formData,
 			formDataKeys: options.formData ? Object.keys(options.formData) : []
 		}));
@@ -134,7 +157,7 @@ export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObjec
 		const response = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
-			options,
+			optionsWithHeaders,
 		);
 		
 		console.log('[uploadDocument] Response received successfully');

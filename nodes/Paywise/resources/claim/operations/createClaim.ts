@@ -1,7 +1,7 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
 import { IClaimData, IClaimItem, IAdditionalCharge, IPayment } from '../claim.interfaces';
-import { ApiType, getApiUrl } from '../../../apiUtils';
+import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
 
 // Define operation field properties
 export const createClaimFields: INodeProperties[] = [
@@ -25,6 +25,32 @@ export const createClaimFields: INodeProperties[] = [
 		description: 'Whether to input data via fields or JSON object',
 		displayOptions: {
 			show: {
+				resource: ['claim'],
+			},
+		},
+	},
+	{
+		displayName: 'Act on Behalf of Client',
+		name: 'actOnBehalfOfClient',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to act on behalf of a client company when making this request',
+		displayOptions: {
+			show: {
+				resource: ['claim'],
+			},
+		},
+	},
+	{
+		displayName: 'User ID',
+		name: 'userId',
+		type: 'string',
+		default: '',
+		description: 'ID of the user to act on behalf of',
+		required: true,
+		displayOptions: {
+			show: {
+				actOnBehalfOfClient: [true],
 				resource: ['claim'],
 			},
 		},
@@ -1592,11 +1618,14 @@ export async function createClaim(this: IExecuteFunctions): Promise<JsonObject> 
 			body: claimData,
 		};
 		
+		// Add X-User-Id header if acting on behalf of client
+		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		
 		console.log('[createClaim] Making authenticated API request');
 		const response = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
-			options,
+			optionsWithHeaders,
 		);
 		
 		console.log('[createClaim] Response received successfully');

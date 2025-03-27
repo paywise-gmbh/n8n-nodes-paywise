@@ -1,6 +1,6 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl } from '../../../apiUtils';
+import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
 
 // Define operation field properties
 export const getDebtorFields: INodeProperties[] = [
@@ -11,6 +11,26 @@ export const getDebtorFields: INodeProperties[] = [
 		default: '',
 		required: true,
 		description: 'ID of the debtor to retrieve',
+	},
+	{
+		displayName: 'Act on Behalf of Client',
+		name: 'actOnBehalfOfClient',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to act on behalf of a client company when making this request',
+	},
+	{
+		displayName: 'User ID',
+		name: 'userId',
+		type: 'string',
+		default: '',
+		description: 'ID of the user to act on behalf of',
+		required: true,
+		displayOptions: {
+			show: {
+				actOnBehalfOfClient: [true],
+			},
+		},
 	},
 ];
 
@@ -40,7 +60,7 @@ export async function getDebtor(this: IExecuteFunctions): Promise<JsonObject> {
 		
 		console.log('[getDebtor] Using URL:', url);
 		
-		// Make API request
+		// Prepare request options
 		const options = {
 			method: 'GET',
 			url,
@@ -49,11 +69,14 @@ export async function getDebtor(this: IExecuteFunctions): Promise<JsonObject> {
 			},
 		};
 		
+		// Add X-User-Id header if acting on behalf of client
+		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		
 		console.log('[getDebtor] Making authenticated API request');
 		const response = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
-			options,
+			optionsWithHeaders,
 		);
 		
 		console.log('[getDebtor] Response received successfully');

@@ -1,6 +1,6 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl } from '../../../apiUtils';
+import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
 
 // Define operation field properties
 export const getClaimFields: INodeProperties[] = [
@@ -12,19 +12,53 @@ export const getClaimFields: INodeProperties[] = [
 		required: true,
 		description: 'ID of the claim to retrieve',
 	},
+	{
+		displayName: 'Act on Behalf of Client',
+		name: 'actOnBehalfOfClient',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to act on behalf of a client company when making this request',
+	},
+	{
+		displayName: 'User ID',
+		name: 'userId',
+		type: 'string',
+		default: '',
+		description: 'ID of the user to act on behalf of',
+		required: true,
+		displayOptions: {
+			show: {
+				actOnBehalfOfClient: [true],
+			},
+		},
+	},
 ];
 
 /**
  * Maps node parameters for getClaim operation
  */
-export function mapGetClaimParams(this: IExecuteFunctions): { claimId: string } {
+export function mapGetClaimParams(this: IExecuteFunctions): { claimId: string; actOnBehalfOfClient: boolean; userId?: string } {
 	const claimId = this.getNodeParameter('claimId', 0) as string;
+	const actOnBehalfOfClient = this.getNodeParameter('actOnBehalfOfClient', 0, false) as boolean;
 	
 	if (!claimId) {
 		throw new NodeOperationError(this.getNode(), 'Claim ID is required');
 	}
 	
-	return { claimId };
+	const params: { claimId: string; actOnBehalfOfClient: boolean; userId?: string } = {
+		claimId,
+		actOnBehalfOfClient,
+	};
+	
+	if (actOnBehalfOfClient) {
+		params.userId = this.getNodeParameter('userId', 0) as string;
+		
+		if (!params.userId) {
+			throw new NodeOperationError(this.getNode(), 'User ID is required when acting on behalf of a client');
+		}
+	}
+	
+	return params;
 }
 
 export async function getClaim(this: IExecuteFunctions): Promise<JsonObject> {
@@ -40,7 +74,7 @@ export async function getClaim(this: IExecuteFunctions): Promise<JsonObject> {
 		
 		console.log('[getClaim] Using URL:', url);
 		
-		// Make API request
+		// Prepare headers
 		const options = {
 			method: 'GET',
 			url,
@@ -49,11 +83,14 @@ export async function getClaim(this: IExecuteFunctions): Promise<JsonObject> {
 			},
 		};
 		
+		// Add X-User-Id header if acting on behalf of client
+		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		
 		console.log('[getClaim] Making authenticated API request');
 		const response = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
-			options,
+			optionsWithHeaders,
 		);
 		
 		console.log('[getClaim] Response received successfully');

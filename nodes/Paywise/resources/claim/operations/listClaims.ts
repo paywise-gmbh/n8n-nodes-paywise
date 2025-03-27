@@ -1,6 +1,6 @@
 import { IExecuteFunctions } from 'n8n-core';
-import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl } from '../../../apiUtils';
+import { JsonObject, INodeProperties, NodeOperationError } from 'n8n-workflow';
+import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
 
 // Define operation field properties
 export const listClaimsFields: INodeProperties[] = [
@@ -20,19 +20,54 @@ export const listClaimsFields: INodeProperties[] = [
 		required: false,
 		description: 'Number of claims to skip',
 	},
+	{
+		displayName: 'Act on Behalf of Client',
+		name: 'actOnBehalfOfClient',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to act on behalf of a client company when making this request',
+	},
+	{
+		displayName: 'User ID',
+		name: 'userId',
+		type: 'string',
+		default: '',
+		description: 'ID of the user to act on behalf of',
+		required: true,
+		displayOptions: {
+			show: {
+				actOnBehalfOfClient: [true],
+			},
+		},
+	},
 ];
 
 /**
  * Maps node parameters for listClaims operation
  */
-export function mapListClaimsParams(this: IExecuteFunctions): { limit: number; offset: number } {
+export function mapListClaimsParams(this: IExecuteFunctions): { limit: number; offset: number; actOnBehalfOfClient: boolean; userId?: string } {
 	console.log('[listClaims] mapListClaimsParams called');
 	
 	const limit = this.getNodeParameter('limit', 0, 10) as number;
 	const offset = this.getNodeParameter('offset', 0, 0) as number;
+	const actOnBehalfOfClient = this.getNodeParameter('actOnBehalfOfClient', 0, false) as boolean;
 	
-	console.log('[listClaims] parameters mapped:', { limit, offset });
-	return { limit, offset };
+	const params: { limit: number; offset: number; actOnBehalfOfClient: boolean; userId?: string } = {
+		limit,
+		offset,
+		actOnBehalfOfClient,
+	};
+	
+	if (actOnBehalfOfClient) {
+		params.userId = this.getNodeParameter('userId', 0) as string;
+		
+		if (!params.userId) {
+			throw new NodeOperationError(this.getNode(), 'User ID is required when acting on behalf of a client');
+		}
+	}
+	
+	console.log('[listClaims] parameters mapped:', params);
+	return params;
 }
 
 export async function listClaims(this: IExecuteFunctions): Promise<JsonObject> {
@@ -51,7 +86,7 @@ export async function listClaims(this: IExecuteFunctions): Promise<JsonObject> {
 		
 		console.log('[listClaims] Using URL:', url);
 		
-		// Make API request
+		// Prepare request options
 		const options = {
 			method: 'GET',
 			url,
@@ -60,11 +95,14 @@ export async function listClaims(this: IExecuteFunctions): Promise<JsonObject> {
 			},
 		};
 		
+		// Add X-User-Id header if acting on behalf of client
+		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		
 		console.log('[listClaims] Making authenticated API request');
 		const response = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
-			options,
+			optionsWithHeaders,
 		);
 		
 		console.log('[listClaims] Response received successfully');
