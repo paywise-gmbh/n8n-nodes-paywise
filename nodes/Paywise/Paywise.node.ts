@@ -58,15 +58,15 @@ interface ResourceMappings {
 
 export class Paywise implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Paywise',
+		displayName: 'paywise',
 		name: 'paywise',
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
 		icon: 'file:paywise-logo.svg',
 		group: ['transform'],
 		version: 1,
-		description: 'Consume Paywise API',
+		description: 'Consume paywise API',
 		defaults: {
-			name: 'Paywise',
+			name: 'paywise',
 			color: '#18559d',
 		},
 		inputs: ['main'],
