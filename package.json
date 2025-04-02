@@ -1,10 +1,12 @@
 {
-  "name": "@paywise/paywise-n8n-node",
-  "version": "0.1.0",
-  "description": "Paywise API integration for n8n",
+  "name": "@paywise/n8n-nodes-paywise",
+  "version": "0.1.1",
+  "description": "Paywise API integration for n8n - German Debt Collection Agency",
   "keywords": [
     "n8n-community-node-package",
-    "paywise"
+    "paywise",
+    "debt-collection",
+    "inkasso"
   ],
   "license": "MIT",
   "homepage": "https://paywise.de",
@@ -14,16 +16,16 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/paywise/n8n-nodes-paywise"
   },
-  "main": "index.js",
+  "main": "dist/nodes/pannek/paywise.node.js",
   "scripts": {
     "build": "tsc && gulp copy:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
-    "lint": "eslint nodes credentials package.json",
-    "lintfix": "eslint nodes credentials package.json --fix",
-    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json"
+    "lint": "eslint -c .eslintrc.js nodes credentials package.json",
+    "lintfix": "eslint -c .eslintrc.js nodes credentials package.json --fix",
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "dist"
@@ -31,10 +33,10 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/PaywiseApi.credentials.js"
+      "dist/credentials/paywiseApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/Paywise/Paywise.node.js"
+      "dist/nodes/paywise/paywise.node.js"
     ]
   },
   "devDependencies": {

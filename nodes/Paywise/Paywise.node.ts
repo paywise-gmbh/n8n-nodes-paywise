@@ -5,6 +5,7 @@ import {
 	INodeTypeDescription,
 	NodeOperationError,
 	JsonObject,
+	INodeProperties,
 } from 'n8n-workflow';
 
 // Import resource declarations
@@ -77,7 +78,7 @@ export class Paywise implements INodeType {
 				required: true,
 			},
 		],
-		documentationUrl: 'https://api.paywise.org/v1/docs/',
+		documentationUrl: 'https://docs.paywise.de/',
 		properties: [
 			{
 				displayName: 'Resource',
@@ -125,13 +126,13 @@ export class Paywise implements INodeType {
 			},
 
 			// Resource operations and their fields
-			...claimOperations,
-			...companyOperations,
-			...debtorOperations,
-			...infoOperations,
-			...tokenOperations,
-			...userOperations,
-			...userinviteOperations,
+			...(claimOperations as INodeProperties[]),
+			...(companyOperations as INodeProperties[]),
+			...(debtorOperations as INodeProperties[]),
+			...(infoOperations as INodeProperties[]),
+			...(tokenOperations as INodeProperties[]),
+			...(userOperations as INodeProperties[]),
+			...(userinviteOperations as INodeProperties[]),
 		],
 	};
 

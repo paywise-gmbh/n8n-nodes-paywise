@@ -19,9 +19,9 @@ export async function getUserInvite(this: IExecuteFunctions): Promise<JsonObject
 	
 	try {
 		// Get invite ID from parameters
-		const inviteParams = this.getNodeParameter('inviteParams', 0, {});
+		const inviteId = this.getNodeParameter('inviteId', 0) as string;
 		
-		if (!inviteParams.inviteId) {
+		if (!inviteId) {
 			throw new Error('User Invite ID is required');
 		}
 		
@@ -29,8 +29,8 @@ export async function getUserInvite(this: IExecuteFunctions): Promise<JsonObject
 		const url = await getApiUrl.call(
 			this,
 			ApiType.PARTNER,
-			'userinvites',
-			inviteParams.inviteId as string,
+			'user_invites',
+			inviteId,
 		);
 		
 		// Make API request
@@ -55,4 +55,4 @@ export async function getUserInvite(this: IExecuteFunctions): Promise<JsonObject
 		console.error('[getUserInvite] Error:', error);
 		throw error;
 	}
-} 
+}

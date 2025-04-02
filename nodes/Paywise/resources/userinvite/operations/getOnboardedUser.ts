@@ -5,12 +5,11 @@ import { ApiType, getApiUrl } from '../../../apiUtils';
 // Define operation field properties
 export const getOnboardedUserFields: INodeProperties[] = [
 	{
-		displayName: 'User Invite ID',
+		displayName: 'Invite ID',
 		name: 'inviteId',
 		type: 'string',
 		default: '',
-		required: true,
-		description: 'The ID of the user invite to get the onboarded user from',
+		description: 'The ID of the user invite to retrieve the onboarded user for',
 	},
 ];
 
@@ -19,18 +18,18 @@ export async function getOnboardedUser(this: IExecuteFunctions): Promise<JsonObj
 	
 	try {
 		// Get invite ID from parameters
-		const inviteParams = this.getNodeParameter('inviteParams', 0, {});
+		const inviteId = this.getNodeParameter('inviteId', 0) as string;
 		
-		if (!inviteParams.inviteId) {
-			throw new Error('User Invite ID is required');
+		if (!inviteId) {
+			throw new Error('Invite ID is required');
 		}
 		
 		// Get API URL
 		const url = await getApiUrl.call(
 			this,
 			ApiType.PARTNER,
-			'userinvites',
-			`${inviteParams.inviteId as string}/user/`,
+			'user_invites',
+			`${inviteId}/user`,
 		);
 		
 		// Make API request
@@ -55,4 +54,4 @@ export async function getOnboardedUser(this: IExecuteFunctions): Promise<JsonObj
 		console.error('[getOnboardedUser] Error:', error);
 		throw error;
 	}
-} 
+}

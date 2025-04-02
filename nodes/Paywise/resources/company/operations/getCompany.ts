@@ -1,5 +1,5 @@
 import { IExecuteFunctions } from 'n8n-core';
-import { JsonObject, INodeProperties } from 'n8n-workflow';
+import { JsonObject, INodeProperties, INodeParameters } from 'n8n-workflow';
 import { ApiType, getApiUrl } from '../../../apiUtils';
 
 // Define operation field properties
@@ -18,9 +18,9 @@ export async function getCompany(this: IExecuteFunctions): Promise<JsonObject> {
 	
 	try {
 		// Get company ID from parameters
-		const companyParams = this.getNodeParameter('companyParams', 0, {});
+		const companyId = this.getNodeParameter('companyId', 0) as string;
 		
-		if (!companyParams.companyId) {
+		if (!companyId) {
 			throw new Error('Company ID is required');
 		}
 		
@@ -29,7 +29,7 @@ export async function getCompany(this: IExecuteFunctions): Promise<JsonObject> {
 			this,
 			ApiType.PARTNER,
 			'companies',
-			companyParams.companyId as string,
+			companyId,
 		);
 		
 		// Make API request

@@ -354,13 +354,13 @@ export async function updateCompany(this: IExecuteFunctions): Promise<JsonObject
 								(updateData.address as any)[addressKey] = addressValue;
 							}
 						});
-					} else if (key === 'legal_representatives' && value.representatives) {
-						updateData.legal_representatives = (value.representatives as Array<any>).map(rep => ({
+					} else if (key === 'legal_representatives' && typeof value === 'object' && 'representatives' in value) {
+						updateData.legal_representatives = ((value as JsonObject).representatives as Array<any>).map(rep => ({
 							type: rep.type,
 							name: rep.name,
 						}));
-					} else if (key === 'notification_channels' && value.channels) {
-						updateData.notification_channels = (value.channels as Array<any>).map(channel => ({
+					} else if (key === 'notification_channels' && typeof value === 'object' && 'channels' in value) {
+						updateData.notification_channels = ((value as JsonObject).channels as Array<any>).map(channel => ({
 							channel_type: channel.channel_type,
 							value: channel.value,
 							notification_types: channel.notification_types,
@@ -404,4 +404,4 @@ export async function updateCompany(this: IExecuteFunctions): Promise<JsonObject
 		console.error('[updateCompany] Error:', error);
 		throw error;
 	}
-} 
+}

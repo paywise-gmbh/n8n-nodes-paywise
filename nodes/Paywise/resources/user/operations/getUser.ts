@@ -9,7 +9,7 @@ export const getUserFields: INodeProperties[] = [
 		name: 'userId',
 		type: 'string',
 		default: '',
-		description: 'ID of the user to retrieve',
+		description: 'The ID of the user to retrieve',
 	},
 ];
 
@@ -17,16 +17,20 @@ export async function getUser(this: IExecuteFunctions): Promise<JsonObject> {
 	console.log('[getUser] operation function called');
 	
 	try {
-		// Get parameters from userParams collection
-		const userParams = this.getNodeParameter('userParams', 0, {});
+		// Get user ID from parameters
+		const userId = this.getNodeParameter('userId', 0) as string;
 		
-		// Validate required parameters
-		if (!userParams.userId) {
+		if (!userId) {
 			throw new Error('User ID is required');
 		}
 		
 		// Get API URL
-		const url = await getApiUrl.call(this, ApiType.PARTNER, 'users', userParams.userId as string);
+		const url = await getApiUrl.call(
+			this,
+			ApiType.PARTNER,
+			'users',
+			userId,
+		);
 		
 		// Make API request
 		const options = {
@@ -47,7 +51,7 @@ export async function getUser(this: IExecuteFunctions): Promise<JsonObject> {
 		console.log('[getUser] Response received successfully');
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[getUser] Error retrieving user:', error);
+		console.error('[getUser] Error:', error);
 		throw error;
 	}
 } 
