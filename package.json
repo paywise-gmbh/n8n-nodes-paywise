@@ -1,6 +1,6 @@
 {
   "name": "@paywise/n8n-nodes-paywise",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Paywise API integration for n8n - German Debt Collection Agency",
   "keywords": [
     "n8n-community-node-package",
@@ -18,7 +18,7 @@
     "type": "git",
     "url": "https://github.com/paywise/n8n-nodes-paywise"
   },
-  "main": "dist/nodes/pannek/paywise.node.js",
+  "main": "dist/nodes/paywise/paywise.node.js",
   "scripts": {
     "build": "tsc && gulp copy:icons",
     "dev": "tsc --watch",
@@ -33,10 +33,10 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/paywiseApi.credentials.js"
+      "dist/credentials/PaywiseApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/paywise/paywise.node.js"
+      "dist/nodes/paywise/Paywise.node.js"
     ]
   },
   "devDependencies": {
