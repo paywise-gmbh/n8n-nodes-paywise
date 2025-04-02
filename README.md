@@ -91,7 +91,7 @@ The node provides detailed error messages and logging for troubleshooting:
 
 For support and feature requests:
 - Email: info@paywise.de
-- Documentation: https://api.paywise.org/v1/docs/
+- Documentation: https://docs.paywise.de/
 
 ## License
 
