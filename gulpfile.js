@@ -1,10 +1,9 @@
 const { src, dest } = require('gulp');
 
 function copyIcons() {
-	// Copy to both locations to ensure compatibility
+	// Only copy to one location to prevent duplicate nodes
 	return src('nodes/**/*.svg')
-		.pipe(dest('dist/nodes'))  // Original location
-		.pipe(dest('dist'));       // Root location
+		.pipe(dest('dist/nodes'));  // Only copy to dist/nodes
 }
 
-exports['copy:icons'] = copyIcons; 
+exports['copy:icons'] = copyIcons;

@@ -348,12 +348,56 @@ export const createDebtorFields: INodeProperties[] = [
 								value: 'phone',
 							},
 							{
-								name: 'Mobile',
-								value: 'mobile',
+								name: 'Mobile Phone',
+								value: 'mobile_phone',
 							},
 							{
 								name: 'Fax',
 								value: 'fax',
+							},
+							{
+								name: 'Skype',
+								value: 'skype',
+							},
+							{
+								name: 'Facebook Messenger',
+								value: 'facebook_messenger',
+							},
+							{
+								name: 'iMessage',
+								value: 'imessage',
+							},
+							{
+								name: 'WhatsApp',
+								value: 'whatsapp',
+							},
+							{
+								name: 'Facebook',
+								value: 'facebook',
+							},
+							{
+								name: 'Twitter',
+								value: 'twitter',
+							},
+							{
+								name: 'LinkedIn',
+								value: 'linkedin',
+							},
+							{
+								name: 'Xing',
+								value: 'xing',
+							},
+							{
+								name: 'Other Social Media',
+								value: 'social_various',
+							},
+							{
+								name: 'Website URL',
+								value: 'website_url',
+							},
+							{
+								name: 'Other Web Source',
+								value: 'web_various',
 							},
 						],
 						default: 'email',
@@ -522,6 +566,13 @@ export const createDebtorFields: INodeProperties[] = [
 ];
 
 /**
+ * Helper function to validate if a value is valid (not null, undefined, or empty string)
+ */
+function isValidValue(value: any): boolean {
+	return value !== null && value !== undefined && value !== '';
+}
+
+/**
  * Maps node parameters to the IDebtorData interface
  */
 export function mapToDebtorData(this: IExecuteFunctions): IDebtorData {
@@ -617,7 +668,7 @@ export function mapToDebtorData(this: IExecuteFunctions): IDebtorData {
 		country: address.country,
 	})) as IAddress[];
 
-	// Get communication channels
+	// Get communication channels and filter out invalid entries
 	const communicationChannelsCollection = this.getNodeParameter('communication_channels', 0, { communicationChannelValues: [] }) as {
 		communicationChannelValues: Array<{
 			type: string;
@@ -625,12 +676,14 @@ export function mapToDebtorData(this: IExecuteFunctions): IDebtorData {
 		}>;
 	};
 
-	const communicationChannels = (communicationChannelsCollection.communicationChannelValues || []).map((channel) => ({
-		type: channel.type,
-		value: channel.value,
-	})) as ICommunicationChannel[];
+	const communicationChannels = (communicationChannelsCollection.communicationChannelValues || [])
+		.filter((channel) => isValidValue(channel.type) && isValidValue(channel.value))
+		.map((channel) => ({
+			type: channel.type,
+			value: channel.value,
+		})) as ICommunicationChannel[];
 
-	// Get bank accounts
+	// Get bank accounts and filter out invalid entries
 	const bankAccountsCollection = this.getNodeParameter('bank_accounts', 0, { bankAccountValues: [] }) as {
 		bankAccountValues: Array<{
 			iban: string;
@@ -638,17 +691,19 @@ export function mapToDebtorData(this: IExecuteFunctions): IDebtorData {
 		}>;
 	};
 
-	const bankAccounts = (bankAccountsCollection.bankAccountValues || []).map((account) => {
-		const bankAccount: IBankAccount = {
-			iban: account.iban,
-		};
-		
-		if (account.bic) {
-			bankAccount.bic = account.bic;
-		}
-		
-		return bankAccount;
-	});
+	const bankAccounts = (bankAccountsCollection.bankAccountValues || [])
+		.filter((account) => isValidValue(account.iban))
+		.map((account) => {
+			const bankAccount: IBankAccount = {
+				iban: account.iban,
+			};
+			
+			if (isValidValue(account.bic)) {
+				bankAccount.bic = account.bic;
+			}
+			
+			return bankAccount;
+		});
 
 	// Get metadata
 	const metadataCollection = this.getNodeParameter('metadata', 0, { metadataValues: [] }) as {
@@ -763,4 +818,4 @@ export async function createDebtor(this: IExecuteFunctions): Promise<JsonObject>
 		console.error('[createDebtor] Error:', error);
 		throw error;
 	}
-} 
+}
