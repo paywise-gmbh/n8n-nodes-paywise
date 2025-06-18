@@ -1,7 +1,7 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
 import { IDebtorData, IAddress, ICommunicationChannel, IBankAccount, IPerson, IOrganization } from '../debtor.interfaces';
-import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
+import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
 
 // Define operation field properties
 export const createDebtorFields: INodeProperties[] = [
@@ -802,8 +802,8 @@ export async function createDebtor(this: IExecuteFunctions): Promise<JsonObject>
 			body: debtorData,
 		};
 		
-		// Add X-User-Id header if acting on behalf of client
-		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
+		const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
 		
 		console.log('[createDebtor] Making authenticated API request');
 		const response = await this.helpers.requestWithAuthentication.call(

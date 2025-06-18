@@ -4,7 +4,7 @@ import { IClaimData } from '../claim.interfaces';
 import { createClaim, createClaimFields, mapToClaimData, validateClaimData } from './createClaim';
 import { mapUploadDocumentParams } from './uploadDocument';
 import FormData from 'form-data';
-import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
+import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
 
 // Define operation field properties specific to createAndReleaseClaim
 export const createAndReleaseClaimFields: INodeProperties[] = [
@@ -383,8 +383,8 @@ async function uploadClaimDocument(
 		}
 	};
 	
-	// Add X-User-Id header if acting on behalf of client
-	const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+	// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
+	const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
 	
 	console.log(`[uploadClaimDocument] Sending request to: ${options.url}`);
 	try {
@@ -439,8 +439,8 @@ async function releaseExistingClaim(this: IExecuteFunctions, claimId: string): P
 		},
 	};
 	
-	// Add X-User-Id header if acting on behalf of client
-	const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, releaseOptions, 0);
+	// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
+	const optionsWithHeaders = addCommonHeaders.call(this, releaseOptions, 0);
 	
 	console.log('[releaseExistingClaim] Releasing claim');
 	const releaseResponse = await this.helpers.requestWithAuthentication.call(
@@ -515,8 +515,8 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 			body: claimData,
 		};
 		
-		// Add X-User-Id header if acting on behalf of client
-		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, createOptions, 0);
+		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
+		const optionsWithHeaders = addCommonHeaders.call(this, createOptions, 0);
 		
 		console.log('[createAndReleaseClaim] Making API request to create claim...');
 		console.log('[createAndReleaseClaim] Request URL:', createOptions.url);
@@ -666,4 +666,4 @@ export async function createAndReleaseClaim(this: IExecuteFunctions): Promise<Js
 		
 		throw error;
 	}
-} 
+}

@@ -1,6 +1,6 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl } from '../../../apiUtils';
+import { ApiType, getApiUrl, addUserAgentHeader } from '../../../apiUtils';
 
 // Define operation field properties
 export const listCompaniesFields: INodeProperties[] = [
@@ -100,11 +100,14 @@ export async function listCompanies(this: IExecuteFunctions): Promise<JsonObject
 			},
 		};
 		
+		// Add User-Agent header (Partner API doesn't use X-User-Id)
+		const optionsWithHeaders = addUserAgentHeader(options);
+		
 		console.log('[listCompanies] Making authenticated API request to:', url);
 		const response = await this.helpers.requestWithAuthentication.call(
 			this,
 			'paywiseApi',
-			options,
+			optionsWithHeaders,
 		);
 		
 		console.log('[listCompanies] Response received successfully');
@@ -113,4 +116,4 @@ export async function listCompanies(this: IExecuteFunctions): Promise<JsonObject
 		console.error('[listCompanies] Error:', error);
 		throw error;
 	}
-} 
+}

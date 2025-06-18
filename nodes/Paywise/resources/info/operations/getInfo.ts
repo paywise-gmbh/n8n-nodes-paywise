@@ -1,6 +1,6 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
+import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
 
 // Define operation field properties
 export const getInfoFields: INodeProperties[] = [
@@ -57,8 +57,8 @@ export async function getInfo(this: IExecuteFunctions): Promise<JsonObject> {
 				},
 			};
 			
-			// Add X-User-Id header if acting on behalf of client (only for Case Management API)
-			const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, caseManagementOptions, 0);
+			// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
+			const optionsWithHeaders = addCommonHeaders.call(this, caseManagementOptions, 0);
 			
 			console.log('[getInfo] Making authenticated API request to Case Management API');
 			response = await this.helpers.requestWithAuthentication.call(
@@ -84,11 +84,14 @@ export async function getInfo(this: IExecuteFunctions): Promise<JsonObject> {
 				},
 			};
 			
+			// Add User-Agent header for Partner API (no X-User-Id needed for Partner API)
+			const partnerOptionsWithHeaders = addCommonHeaders.call(this, partnerOptions, 0);
+			
 			console.log('[getInfo] Making authenticated API request to Partner API');
 			response = await this.helpers.requestWithAuthentication.call(
 				this,
 				'paywiseApi',
-				partnerOptions,
+				partnerOptionsWithHeaders,
 			);
 			console.log('[getInfo] Partner API response received successfully');
 		}
@@ -98,4 +101,4 @@ export async function getInfo(this: IExecuteFunctions): Promise<JsonObject> {
 		console.error('[getInfo] Error:', error);
 		throw error;
 	}
-} 
+}

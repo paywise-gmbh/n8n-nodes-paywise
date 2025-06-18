@@ -1,7 +1,7 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
 import FormData from 'form-data';
-import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
+import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
 
 // Define operation field properties
 export const uploadDocumentFields: INodeProperties[] = [
@@ -142,8 +142,8 @@ export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObjec
 			}
 		};
 		
-		// Add X-User-Id header if acting on behalf of client
-		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
+		const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
 		
 		console.log('[uploadDocument] Request prepared:', JSON.stringify({
 			method: options.method,
@@ -170,4 +170,4 @@ export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObjec
 		}
 		throw error;
 	}
-} 
+}

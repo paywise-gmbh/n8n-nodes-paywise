@@ -1,7 +1,7 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
 import { IClaimData, IClaimItem, IAdditionalCharge, IPayment } from '../claim.interfaces';
-import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
+import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
 
 // Define operation field properties
 export const createClaimFields: INodeProperties[] = [
@@ -956,14 +956,12 @@ export function validateClaimData(this: IExecuteFunctions, claimData: IClaimData
 		});
 	}
 	
-	// Validate consistency between additional_charges_amount and additional_charges
-	if (claimData.additional_charges_amount && 
-	    (!claimData.additional_charges || claimData.additional_charges.length === 0)) {
-		console.log('[validateClaimData] Additional charges amount provided without individual charges');
-		// If additional_charges_amount is provided but no additional_charges, 
-		// remove additional_charges_amount to ensure consistency
-		delete claimData.additional_charges_amount;
-		console.log('[validateClaimData] Removed additional_charges_amount to ensure API compatibility');
+	// Log information about additional charges configuration
+	if (claimData.additional_charges_amount) {
+		console.log('[validateClaimData] Additional charges amount provided:', claimData.additional_charges_amount);
+		if (!claimData.additional_charges || claimData.additional_charges.length === 0) {
+			console.log('[validateClaimData] Additional charges amount provided without individual charges - this is allowed');
+		}
 	}
 	
 	// Required fields validation
@@ -1618,8 +1616,8 @@ export async function createClaim(this: IExecuteFunctions): Promise<JsonObject> 
 			body: claimData,
 		};
 		
-		// Add X-User-Id header if acting on behalf of client
-		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
+		const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
 		
 		console.log('[createClaim] Making authenticated API request');
 		const response = await this.helpers.requestWithAuthentication.call(
@@ -1634,4 +1632,4 @@ export async function createClaim(this: IExecuteFunctions): Promise<JsonObject> 
 		console.error('[createClaim] Error:', error);
 		throw error;
 	}
-} 
+}

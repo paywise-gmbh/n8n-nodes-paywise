@@ -1,7 +1,7 @@
 {
   "name": "@paywise/n8n-nodes-paywise",
-  "version": "0.2.0",
-  "description": "Paywise API integration for n8n - German Debt Collection Agency",
+  "version": "0.2.1",
+  "description": "paywise API integration for n8n - German Debt Collection Agency",
   "keywords": [
     "n8n-community-node-package",
     "paywise",

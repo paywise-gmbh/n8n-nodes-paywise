@@ -1,6 +1,6 @@
 import { IExecuteFunctions } from 'n8n-core';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addActOnBehalfOfClientHeader } from '../../../apiUtils';
+import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
 
 // Define operation field properties
 export const getDebtorFields: INodeProperties[] = [
@@ -69,8 +69,8 @@ export async function getDebtor(this: IExecuteFunctions): Promise<JsonObject> {
 			},
 		};
 		
-		// Add X-User-Id header if acting on behalf of client
-		const optionsWithHeaders = addActOnBehalfOfClientHeader.call(this, options, 0);
+		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
+		const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
 		
 		console.log('[getDebtor] Making authenticated API request');
 		const response = await this.helpers.requestWithAuthentication.call(
@@ -85,4 +85,4 @@ export async function getDebtor(this: IExecuteFunctions): Promise<JsonObject> {
 		console.error('[getDebtor] Error:', error);
 		throw error;
 	}
-} 
+}

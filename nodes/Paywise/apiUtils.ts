@@ -90,6 +90,25 @@ export async function getApiUrl(
 }
 
 /**
+ * Adds n8n User-Agent header to request options
+ * @param options The request options
+ * @returns The updated request options with User-Agent header
+ */
+export function addUserAgentHeader(options: { headers: Record<string, string> }): { headers: Record<string, string> } {
+	try {
+		// Add n8n User-Agent header
+		options.headers['User-Agent'] = 'n8n-paywise-node/1.0';
+		console.log('[addUserAgentHeader] Added User-Agent header');
+		
+		return options;
+	} catch (error) {
+		// Log the error but don't throw it to maintain backward compatibility
+		console.error('[addUserAgentHeader] Error adding User-Agent header:', error);
+		return options;
+	}
+}
+
+/**
  * Adds "Act on Behalf of Client" header if specified in the parameters
  * This is only applicable for Case Management API
  * @param this The execute functions context
@@ -127,4 +146,25 @@ export function addActOnBehalfOfClientHeader(
 		console.error('[addActOnBehalfOfClientHeader] Error adding Act on Behalf of Client header:', error);
 		return options;
 	}
-} 
+}
+
+/**
+ * Adds common headers (User-Agent and optionally Act on Behalf of Client) to request options
+ * @param this The execute functions context
+ * @param options The request options
+ * @param itemIndex The index of the item being processed (optional, defaults to 0)
+ * @returns The updated request options with all common headers
+ */
+export function addCommonHeaders(
+	this: IExecuteFunctions, 
+	options: { headers: Record<string, string> },
+	itemIndex: number = 0,
+): { headers: Record<string, string> } {
+	// Add User-Agent header
+	let updatedOptions = addUserAgentHeader(options);
+	
+	// Add Act on Behalf of Client header if applicable
+	updatedOptions = addActOnBehalfOfClientHeader.call(this, updatedOptions, itemIndex);
+	
+	return updatedOptions;
+}
