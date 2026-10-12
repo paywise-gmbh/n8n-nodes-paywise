@@ -1,0 +1,18 @@
+{
+	"node": "@paywise/n8n-nodes-paywise.paywise",
+	"nodeVersion": "2.0",
+	"codexVersion": "1.0",
+	"categories": ["Finance & Accounting"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://docs.paywise.de/api-docs/essentials/authentication-and-environments"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://docs.paywise.de/api-docs/case-management-api/introduction"
+			}
+		]
+	}
+}

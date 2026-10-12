@@ -1,16 +1,19 @@
+# Local n8n with this package installed the way a community package is installed.
+# Run `npm run build` first; restart the container after rebuilding.
 services:
   n8n:
     image: n8nio/n8n
     ports:
       - "5678:5678"
     environment:
-      - N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom
       - N8N_LOG_LEVEL=debug
+      - N8N_DIAGNOSTICS_ENABLED=false
     volumes:
       - n8n_data:/home/node/.n8n
-      - ./dist:/home/node/.n8n/custom/paywise-n8n-node
-    restart: always
+      - ./package.json:/home/node/.n8n/nodes/node_modules/@paywise/n8n-nodes-paywise/package.json:ro
+      - ./dist:/home/node/.n8n/nodes/node_modules/@paywise/n8n-nodes-paywise/dist:ro
+    restart: unless-stopped
 
 volumes:
   n8n_data:
-    driver: local 
+    driver: local
