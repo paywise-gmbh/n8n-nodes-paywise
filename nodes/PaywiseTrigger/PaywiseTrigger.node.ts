@@ -67,6 +67,8 @@ export class PaywiseTrigger implements INodeType {
 				name: 'default',
 				httpMethod: 'POST',
 				responseMode: 'onReceived',
+				// paywise only needs a 2xx; answer without echoing workflow data.
+				responseData: 'noData',
 				path: 'webhook',
 			},
 		],

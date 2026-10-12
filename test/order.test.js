@@ -123,7 +123,10 @@ test('API errors surface detail, field errors and request id', async () => {
 			[error],
 		),
 		(e) => {
-			assert.strictEqual(e.message, 'Validation failed');
+			assert.strictEqual(
+				e.message,
+				'Validation failed claims[0].principal_amount: This field is required.',
+			);
 			assert.strictEqual(e.httpCode, '400');
 			assert.match(e.description, /claims\[0\]\.principal_amount: This field is required\./);
 			assert.match(e.description, /Request ID: req-7/);
@@ -138,7 +141,7 @@ test('API errors surface detail, field errors and request id', async () => {
 			continueOnFail: true,
 		},
 	);
-	assert.strictEqual(output[0].json.error, 'Validation failed');
+	assert.match(output[0].json.error, /^Validation failed/);
 });
 
 test('delete returns a confirmation for the 204 response', async () => {

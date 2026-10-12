@@ -203,8 +203,14 @@ function buildApiError(
 	if (body.code) lines.unshift(`Code: ${body.code}`);
 	if (requestId) lines.push(`Request ID: ${requestId}`);
 
+	// Some n8n surfaces (e.g. workflow activation) show only the message, so it carries
+	// the first field error as well.
+	const firstError = body.errors?.[0];
+	const detail = body.detail ?? `paywise API request failed with status ${response.statusCode}`;
 	return new NodeApiError(this.getNode(), body as JsonObject, {
-		message: body.detail ?? `paywise API request failed with status ${response.statusCode}`,
+		message: firstError?.message
+			? `${detail} ${firstError.field ? `${firstError.field}: ` : ''}${firstError.message}`
+			: detail,
 		description: lines.join('\n') || undefined,
 		httpCode: String(response.statusCode),
 		itemIndex,
