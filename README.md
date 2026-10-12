@@ -64,7 +64,7 @@ npm run lint
 npm run build && npm test
 ```
 
-Releases are published to npm by GitHub Actions with provenance when a version tag is pushed (`npm run release`).
+Releases: `npm run release` on `main` bumps the version, tags and pushes. The tag starts a GitHub Actions workflow that stages the version on npm with provenance (npm Trusted Publishing). A maintainer then approves it with 2FA (`npm stage approve <stage-id>` or on npmjs.com) before it becomes installable.
 
 ## Support
 

@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Node version 1 (API v1) is frozen and kept for existing workflows.
-- Build, lint, dev and release now use `@n8n/node-cli`; releases are published from GitHub Actions with npm provenance.
+- Build, lint, dev and release now use `@n8n/node-cli`; releases are staged on npm from GitHub Actions with provenance (Trusted Publishing) and go live after a maintainer approves them.
 - Package metadata points to the public repository `paywise-gmbh/n8n-nodes-paywise`; author is paywise GmbH.
 
 ## [0.2.2] - 2025-06-18
