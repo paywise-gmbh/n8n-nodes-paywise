@@ -2,47 +2,7 @@
 // Runs against the build output: `npm run build && npm test`.
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { PaywiseV2 } = require('../dist/nodes/Paywise/v2/PaywiseV2.node.js');
-
-function run(parameters, responses, { continueOnFail = false, items = 1 } = {}) {
-	const requests = [];
-	const queue = [...responses];
-	const ctx = {
-		getInputData: () => Array.from({ length: items }, () => ({ json: {} })),
-		getNodeParameter(name, _i, fallback) {
-			const value = name.split('.').reduce((o, k) => (o == null ? undefined : o[k]), parameters);
-			return value === undefined ? fallback : value;
-		},
-		getNode: () => ({
-			id: 'node-1',
-			name: 'paywise',
-			type: 'paywise',
-			typeVersion: 2,
-			parameters: {},
-		}),
-		getExecutionId: () => 'exec-1',
-		getCredentials: async () => ({ environment: 'sandbox', apiKey: 'pw_sbx_test' }),
-		continueOnFail: () => continueOnFail,
-		helpers: {
-			httpRequestWithAuthentication: async (credential, options) => {
-				requests.push({ credential, ...options });
-				return queue.shift() ?? { statusCode: 200, headers: {}, body: {} };
-			},
-			returnJsonArray: (data) => (Array.isArray(data) ? data : [data]).map((json) => ({ json })),
-			constructExecutionMetaData: (items, { itemData }) =>
-				items.map((item) => ({ ...item, pairedItem: itemData })),
-		},
-	};
-	const node = new PaywiseV2({
-		displayName: 'paywise',
-		name: 'paywise',
-		group: [],
-		description: '',
-	});
-	return node.execute.call(ctx).then((output) => ({ output: output[0], requests }));
-}
-
-const ok = (body, statusCode = 200) => ({ statusCode, headers: {}, body });
+const { run, ok } = require('./helpers.js');
 
 test('create with submit posts the order, then finalizes it, with stable idempotency keys', async () => {
 	const params = {

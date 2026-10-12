@@ -19,22 +19,29 @@ Use the **Paywise V2 API** credential with the paywise node v2 and the trigger.
 2. In n8n, create a **Paywise V2 API** credential, pick the environment that matches the key (Production or Sandbox), and paste the key.
 3. Save. n8n tests the key against `GET /v2/info/`.
 
-Each API key has scopes. Grant at least `case:orders:write` to create and submit orders and `case:webhooks:write` for the trigger. See [Authentication and environments](https://docs.paywise.de/api-docs/essentials/authentication-and-environments).
+Each API key has scopes. Grant the scopes for the resources you use, e.g. `case:orders:write`, `case:debtors:write`, `case:payments:write`, `case:mandates:read`, `case:statements:read`, and `case:webhooks:write` for the trigger. See [Authentication and environments](https://docs.paywise.de/api-docs/essentials/authentication-and-environments).
 
 Version 1 of the paywise node uses the older **Paywise API** credential for API v1.
 
 ## Operations (node version 2)
 
-| Resource     | Operations                                                                                   |
-| ------------ | -------------------------------------------------------------------------------------------- |
-| Order        | Create (optionally submit right away), Get, Get Many, Update, Delete draft, Submit, Withdraw |
-| API Key Info | Get company, environment and scopes of the key in use                                        |
+| Resource                 | Operations                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| Order                    | Create (optionally submit right away), Get, Get Many, Update, Delete draft, Submit, Withdraw |
+| Claim                    | Create (in a draft order), Get, Get Many, Update, Delete                                     |
+| Claim Document           | Upload (from a binary field), Get, Get Many, Download, Delete                                |
+| Debtor                   | Create (consumer or business), Get, Get Many, Update                                         |
+| Mandate                  | Get (optionally with history), Get Many, Get History, Get Documents, Download Document       |
+| Payment                  | Report (on a claim or mandate), Get, Get Many, Delete (claim payments)                       |
+| Statement                | Get, Get Many, Download (PDF or XLSX)                                                        |
+| Single Mandate Statement | Get, Get Many, Download                                                                      |
+| API Key Info             | Get company, environment and scopes of the key in use                                        |
 
-An order bundles the claims against one debtor. Create it as a draft with its claims, then submit it to paywise for review. The **Claims (JSON)** field takes the claim objects described in the [API reference](https://docs.paywise.de/api-docs/case-management-api/introduction).
+A typical flow: create a debtor, create an order with its claims, upload documents to the claims, then submit the order. Once paywise accepts it, the order becomes a mandate; follow it with the trigger or the Mandate operations. An order bundles the claims against one debtor. Create it as a draft with its claims, then submit it to paywise for review. The **Claims (JSON)** field takes the claim objects described in the [API reference](https://docs.paywise.de/api-docs/case-management-api/introduction).
 
 ### Safe retries
 
-Every create, submit and withdraw request carries an `Idempotency-Key`. The node derives it from the execution, item and request body, so **Retry On Fail** returns the original result instead of creating a duplicate. Set your own key under **Options → Idempotency Key** (e.g. your invoice number) to also deduplicate across executions for 24 hours.
+Every create, upload, report, submit and withdraw request carries an `Idempotency-Key`. The node derives it from the execution, item and request body, so **Retry On Fail** returns the original result instead of creating a duplicate. Set your own key under **Options → Idempotency Key** (e.g. your invoice number) to also deduplicate across executions for 24 hours.
 
 ## Trigger
 

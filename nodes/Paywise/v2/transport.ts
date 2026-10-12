@@ -68,6 +68,8 @@ export async function paywiseApiRequest(
 		url,
 		headers,
 		qs,
+		// Filters like processing_state accept several values as repeated parameters.
+		arrayFormat: 'repeat',
 		json: true,
 		returnFullResponse: true,
 		ignoreHttpStatusErrors: true,
@@ -87,6 +89,52 @@ export async function paywiseApiRequest(
 		return {};
 	}
 	return response.body as IDataObject;
+}
+
+export interface PaywiseDownload {
+	data: Buffer;
+	fileName?: string;
+	mimeType?: string;
+}
+
+/** Downloads a file endpoint (`.../download/`) as raw bytes. */
+export async function paywiseApiDownload(
+	this: IExecuteFunctions,
+	path: string,
+	{ qs, itemIndex }: PaywiseRequestOptions = {},
+): Promise<PaywiseDownload> {
+	const response = (await this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL_NAME, {
+		method: 'GET',
+		url: `${await getBaseUrl.call(this)}${path}`,
+		headers: { 'User-Agent': USER_AGENT },
+		qs,
+		encoding: 'arraybuffer',
+		json: false,
+		returnFullResponse: true,
+		ignoreHttpStatusErrors: true,
+	})) as IN8nHttpFullResponse;
+
+	const data = Buffer.from(response.body as ArrayBuffer);
+	if (response.statusCode >= 400) {
+		let body: unknown = {};
+		try {
+			body = JSON.parse(data.toString('utf8'));
+		} catch {
+			// Not a JSON error envelope; report the status only.
+		}
+		throw buildApiError.call(this, { ...response, body: body as IDataObject }, itemIndex);
+	}
+
+	const disposition = String(response.headers['content-disposition'] ?? '');
+	const fileName = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition)?.[1];
+	// Some documents are served as octet-stream; leave the type open so n8n derives it
+	// from the file extension instead.
+	const mimeType = (response.headers['content-type'] as string | undefined)?.split(';')[0];
+	return {
+		data,
+		fileName: fileName ? decodeURIComponent(fileName) : undefined,
+		mimeType: mimeType === 'application/octet-stream' ? undefined : mimeType,
+	};
 }
 
 /**

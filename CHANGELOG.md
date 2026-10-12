@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- paywise node version 2 for paywise API v2 (default for new workflows): Order (create with optional submit, get, get many, update, delete draft, submit, withdraw) and API Key Info.
+- paywise node version 2 for paywise API v2 (default for new workflows) with the resources Order, Claim, Claim Document, Debtor, Mandate, Payment, Statement, Single Mandate Statement and API Key Info. Documents and statements are uploaded from and downloaded to n8n binary fields; legal forms load from the API.
 - paywise Trigger: starts workflows from paywise webhook events, registers and removes the webhook automatically and verifies signatures.
 - Paywise V2 API credential with Production, Sandbox and Custom environments and a built-in connection test.
 - Automatic `Idempotency-Key` on create, submit and withdraw, so retries never create duplicates.
