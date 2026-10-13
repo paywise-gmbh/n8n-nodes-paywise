@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-10-13
 
 ### Added
 
@@ -14,12 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Paywise V2 API credential with Production, Sandbox and Custom environments and a built-in connection test.
 - Automatic `Idempotency-Key` on create, submit and withdraw, so retries never create duplicates.
 - Themed light and dark icons.
+- API errors show the paywise message, the failing field and the request ID.
 
 ### Changed
 
 - Node version 1 (API v1) is frozen and kept for existing workflows.
 - Build, lint, dev and release now use `@n8n/node-cli`; releases are staged on npm from GitHub Actions with provenance (Trusted Publishing) and go live after a maintainer approves them.
 - Package metadata points to the public repository `paywise-gmbh/n8n-nodes-paywise`; author is paywise GmbH.
+
+### Fixed
+
+- The node icon was white only and invisible on n8n's light canvas.
 
 ## [0.2.2] - 2025-06-18
 
