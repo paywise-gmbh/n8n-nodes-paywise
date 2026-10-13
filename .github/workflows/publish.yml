@@ -1,0 +1,65 @@
+# Stages a new npm version of this package on every version tag push.
+#
+# Publishing uses npm Trusted Publishing (OIDC) with provenance, which n8n
+# requires for verified community nodes since May 1 2026. No npm token is
+# stored in this repository.
+#
+# The trusted publisher on npmjs.com (package settings → Trusted Publisher)
+# only allows *staged* publishing: this workflow puts the version into the
+# registry in a non-public state, and a maintainer approves it with 2FA
+# before it becomes installable:
+#
+#   npm stage list @paywise/n8n-nodes-paywise
+#   npm stage approve <stage-id>
+#
+# or approve it on the package page on npmjs.com.
+#
+# Release process:
+#   1. `npm run release` on main (lint, build, version bump, changelog,
+#      commit, tag, push, GitHub release).
+#   2. The tag push runs this workflow, which stages the version.
+#   3. A maintainer approves the staged version.
+
+name: Publish
+
+on:
+  push:
+    tags:
+      # Matches 1.0.0, 1.2.3, 2.0.0-rc.1, etc.
+      - '*.*.*'
+
+jobs:
+  stage:
+    name: Stage on npm
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Required to mint the OIDC token for trusted publishing and provenance.
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint, build and test
+        run: |
+          npm run lint
+          npm run build
+          npm test
+
+      - name: Stage the version on npm
+        # `npm stage` needs npm 12. RELEASE_MODE lets the package's
+        # prepublishOnly guard (n8n-node prerelease) pass.
+        run: npx --yes npm@12 stage publish --provenance
+        env:
+          RELEASE_MODE: 'true'
