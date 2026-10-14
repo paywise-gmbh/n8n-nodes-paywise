@@ -1,0 +1,143 @@
+{
+	"name": "paywise: hand over an overdue invoice",
+	"nodes": [
+		{
+			"id": "t",
+			"name": "When clicking 'Execute workflow'",
+			"type": "n8n-nodes-base.manualTrigger",
+			"typeVersion": 1,
+			"position": [0, 0],
+			"parameters": {}
+		},
+		{
+			"id": "d",
+			"name": "Invoice data",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [220, 0],
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "1",
+							"name": "customerNumber",
+							"value": "CUSTOMER-1001",
+							"type": "string"
+						},
+						{
+							"id": "2",
+							"name": "firstName",
+							"value": "Alex",
+							"type": "string"
+						},
+						{
+							"id": "3",
+							"name": "lastName",
+							"value": "Example",
+							"type": "string"
+						},
+						{
+							"id": "4",
+							"name": "invoiceNumber",
+							"value": "RE-2026-0042",
+							"type": "string"
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "c",
+			"name": "Create debtor",
+			"type": "@paywise/n8n-nodes-paywise.paywise",
+			"typeVersion": 2,
+			"position": [440, 0],
+			"parameters": {
+				"resource": "debtor",
+				"operation": "create",
+				"actingAs": "consumer",
+				"firstName": "={{ $json.firstName }}",
+				"lastName": "={{ $json.lastName }}",
+				"street": "Example Street 12",
+				"postalCode": "10115",
+				"city": "Berlin",
+				"country": "DE",
+				"additionalFields": {
+					"yourReference": "={{ $json.customerNumber }}"
+				}
+			},
+			"credentials": {
+				"paywiseV2Api": {
+					"id": "",
+					"name": "paywise"
+				}
+			}
+		},
+		{
+			"id": "o",
+			"name": "Create and submit order",
+			"type": "@paywise/n8n-nodes-paywise.paywise",
+			"typeVersion": 2,
+			"position": [660, 0],
+			"parameters": {
+				"resource": "order",
+				"operation": "create",
+				"orderType": "invoice",
+				"debtorId": "={{ $json.id }}",
+				"claims": "={{ JSON.stringify([{ type: 'receivable', your_reference: $('Invoice data').item.json.invoiceNumber, document_reference: $('Invoice data').item.json.invoiceNumber, subject_matter: 'Goods delivered in July 2026', document_date: '2026-08-01', due_date: '2026-08-15', delay_date: '2026-08-16', principal_amount: { value: '120.00', currency: 'EUR' }, is_disputed: false, legal_basis: { claim_type_code: 'H11', description: 'Sales contract of 2026-07-15' } }]) }}",
+				"submit": true,
+				"additionalFields": {
+					"starting_approach": "extrajudicial",
+					"creditor_obligation_fulfilled": true
+				},
+				"options": {
+					"idempotencyKey": "={{ $('Invoice data').item.json.invoiceNumber }}"
+				}
+			},
+			"credentials": {
+				"paywiseV2Api": {
+					"id": "",
+					"name": "paywise"
+				}
+			}
+		}
+	],
+	"connections": {
+		"When clicking 'Execute workflow'": {
+			"main": [
+				[
+					{
+						"node": "Invoice data",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Invoice data": {
+			"main": [
+				[
+					{
+						"node": "Create debtor",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Create debtor": {
+			"main": [
+				[
+					{
+						"node": "Create and submit order",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		}
+	},
+	"settings": {
+		"executionOrder": "v1"
+	}
+}

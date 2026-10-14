@@ -4,13 +4,13 @@ import { createUserInviteFields, createUserInvite } from './createUserInvite';
 
 // Export operations and fields
 export {
-    // Operations
-    getUserInvite,
-    getOnboardedUser,
-    createUserInvite,
-    
-    // Fields
-    getUserInviteFields,
-    getOnboardedUserFields,
-    createUserInviteFields,
-}; 
+	// Operations
+	getUserInvite,
+	getOnboardedUser,
+	createUserInvite,
+
+	// Fields
+	getUserInviteFields,
+	getOnboardedUserFields,
+	createUserInviteFields,
+};

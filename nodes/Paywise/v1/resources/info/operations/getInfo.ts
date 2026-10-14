@@ -1,6 +1,12 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
+import {
+	ApiType,
+	getApiUrl,
+	addCommonHeaders,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 // Define operation field properties
 export const getInfoFields: INodeProperties[] = [
@@ -10,7 +16,8 @@ export const getInfoFields: INodeProperties[] = [
 		name: 'actOnBehalfOfClient',
 		type: 'boolean',
 		default: false,
-		description: 'Whether to act on behalf of a client company when making the Case Management API request',
+		description:
+			'Whether to act on behalf of a client company when making the Case Management API request',
 	},
 	{
 		displayName: 'User ID',
@@ -36,69 +43,48 @@ export function mapGetInfoParams(this: IExecuteFunctions): Record<string, never>
 }
 
 export async function getInfo(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[getInfo] operation function called');
-	
 	try {
 		// Get API URL using the getApiUrl function
 		// First try Case Management API (with trailing slash)
-		let response: any;
-		let error: any;
-		
+		let response: string;
+
 		try {
 			const caseManagementUrl = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'info', '');
-			console.log('[getInfo] Using Case Management API URL:', caseManagementUrl);
-			
+
 			// Make API request
 			const caseManagementOptions = {
 				method: 'GET',
 				url: caseManagementUrl,
 				headers: {
-					'Accept': 'application/json',
+					Accept: 'application/json',
 				},
 			};
-			
+
 			// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
 			const optionsWithHeaders = addCommonHeaders.call(this, caseManagementOptions, 0);
-			
-			console.log('[getInfo] Making authenticated API request to Case Management API');
-			response = await this.helpers.requestWithAuthentication.call(
-				this,
-				'paywiseApi',
-				optionsWithHeaders,
-			);
-			console.log('[getInfo] Case Management API response received successfully');
-		} catch (e) {
-			console.log('[getInfo] Case Management API request failed, trying Partner API');
-			error = e;
-			
+			response = await paywiseV1Request.call(this, optionsWithHeaders);
+		} catch {
+			// Not a Case Management API key; try the Partner API.
+
 			// Try Partner API if Case Management API failed
 			const partnerUrl = await getApiUrl.call(this, ApiType.PARTNER, 'info', '');
-			console.log('[getInfo] Using Partner API URL:', partnerUrl);
-			
+
 			// Make API request
 			const partnerOptions = {
 				method: 'GET',
-				url: partnerUrl, 
+				url: partnerUrl,
 				headers: {
-					'Accept': 'application/json',
+					Accept: 'application/json',
 				},
 			};
-			
+
 			// Add User-Agent header for Partner API (no X-User-Id needed for Partner API)
 			const partnerOptionsWithHeaders = addCommonHeaders.call(this, partnerOptions, 0);
-			
-			console.log('[getInfo] Making authenticated API request to Partner API');
-			response = await this.helpers.requestWithAuthentication.call(
-				this,
-				'paywiseApi',
-				partnerOptionsWithHeaders,
-			);
-			console.log('[getInfo] Partner API response received successfully');
+			response = await paywiseV1Request.call(this, partnerOptionsWithHeaders);
 		}
-		
+
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[getInfo] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

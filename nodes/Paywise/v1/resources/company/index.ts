@@ -1,4 +1,3 @@
-import { INodeProperties } from 'n8n-workflow';
 import {
 	createCompany,
 	createCompanyFields,
@@ -59,9 +58,9 @@ export const companyOperations = [
 		],
 		default: 'list',
 	},
-	
+
 	// Fields for create operation
-	...createCompanyFields.map(field => ({
+	...createCompanyFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -72,9 +71,9 @@ export const companyOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for get operation
-	...getCompanyFields.map(field => ({
+	...getCompanyFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -85,9 +84,9 @@ export const companyOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for list operation
-	...listCompaniesFields.map(field => ({
+	...listCompaniesFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -98,9 +97,9 @@ export const companyOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for update operation
-	...updateCompanyFields.map(field => ({
+	...updateCompanyFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -128,7 +127,7 @@ export {
 	getCompany,
 	listCompanies,
 	updateCompany,
-	
+
 	// Interfaces
 	IAddress,
 	ILegalRepresentative,
@@ -136,4 +135,4 @@ export {
 	ICompanyData,
 	ICompanyResponse,
 	IUserResponse,
-}; 
+};

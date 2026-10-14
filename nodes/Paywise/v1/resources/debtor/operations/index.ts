@@ -8,9 +8,9 @@ export {
 	createDebtor,
 	getDebtor,
 	listDebtors,
-	
+
 	// Fields
 	createDebtorFields,
 	getDebtorFields,
 	listDebtorsFields,
-}; 
+};

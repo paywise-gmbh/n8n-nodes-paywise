@@ -45,18 +45,15 @@ const executors: Record<string, ResourceExecutor> = {
 };
 
 const versionDescription: INodeTypeDescription = {
+	subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 	displayName: 'paywise',
 	name: 'paywise',
-	// Resolved relative to Paywise.node.ts, which loads this version.
-	icon: { light: 'file:../../icons/paywise.svg', dark: 'file:../../icons/paywise.dark.svg' },
 	group: ['transform'],
 	version: 2,
-	subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 	description: 'Submit and track debt collection cases with the paywise API v2',
 	defaults: {
 		name: 'paywise',
 	},
-	usableAsTool: true,
 	inputs: [NodeConnectionTypes.Main],
 	outputs: [NodeConnectionTypes.Main],
 	credentials: [
@@ -108,16 +105,21 @@ const versionDescription: INodeTypeDescription = {
 	],
 };
 
-// The icon is set in versionDescription above; the rule only inspects class fields.
-// eslint-disable-next-line @n8n/community-nodes/icon-validation
 export class PaywiseV2 implements INodeType {
-	description: INodeTypeDescription;
+	// Icon paths are relative to this file, as the lint rules check them. At runtime n8n
+	// resolves icons relative to Paywise.node.ts, so the constructor uses the base icon.
+	description: INodeTypeDescription = {
+		...versionDescription,
+		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
+		usableAsTool: true,
+		icon: {
+			light: 'file:../../../icons/paywise.svg',
+			dark: 'file:../../../icons/paywise.dark.svg',
+		},
+	};
 
 	constructor(baseDescription: INodeTypeBaseDescription) {
-		this.description = {
-			...baseDescription,
-			...versionDescription,
-		};
+		this.description = { ...baseDescription, ...this.description, icon: baseDescription.icon };
 	}
 
 	methods = {

@@ -1,5 +1,7 @@
-import {
+import type {
 	IAuthenticateGeneric,
+	Icon,
+	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
 } from 'n8n-workflow';
@@ -7,6 +9,7 @@ import {
 export class PaywiseApi implements ICredentialType {
 	name = 'paywiseApi';
 	displayName = 'Paywise API';
+	icon: Icon = { light: 'file:../icons/paywise.svg', dark: 'file:../icons/paywise.dark.svg' };
 	documentationUrl = 'https://api.paywise.org/v1/docs/';
 	properties: INodeProperties[] = [
 		{
@@ -54,4 +57,13 @@ export class PaywiseApi implements ICredentialType {
 			},
 		},
 	};
-} 
+
+	// Tests the key against the Case Management API; Partner API keys are rejected there.
+	test: ICredentialTestRequest = {
+		request: {
+			baseURL: '={{$credentials.baseUrl.replace(/\\/+$/, "")}}',
+			url: '={{"/" + $credentials.caseManagementApiSubpath.replace(/^\\/+|\\/+$/g, "") + "/info/"}}',
+			method: 'GET',
+		},
+	};
+}

@@ -23,7 +23,7 @@ export const infoOperations: INodeProperties[] = [
 		],
 		default: 'get',
 	},
-	
+
 	// Fields for get operation
 	...getInfoFields.map((field: INodeProperties) => ({
 		...field,
@@ -44,6 +44,4 @@ export const infoOperationMapping = {
 };
 
 // Export operations for direct access
-export {
-	getInfo,
-}; 
+export { getInfo };

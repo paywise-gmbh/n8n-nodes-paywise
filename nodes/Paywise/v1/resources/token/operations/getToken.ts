@@ -1,37 +1,32 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
-import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addUserAgentHeader } from '../../../apiUtils';
+import { JsonObject } from 'n8n-workflow';
+import {
+	ApiType,
+	getApiUrl,
+	addUserAgentHeader,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 export async function getToken(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[getToken] operation function called');
-	
 	try {
 		// Get API URL for info endpoint (this will return current token info)
 		const url = await getApiUrl.call(this, ApiType.PARTNER, 'info');
-		
+
 		// Make API request
 		const options = {
 			method: 'GET',
 			url: url,
 			headers: {
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 		};
-		
+
 		// Add User-Agent header (Partner API doesn't use X-User-Id)
 		const optionsWithHeaders = addUserAgentHeader(options);
-		
-		console.log('[getToken] Making authenticated API request to:', url);
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[getToken] Response received successfully');
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[getToken] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

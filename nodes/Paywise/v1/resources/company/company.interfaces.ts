@@ -57,4 +57,4 @@ export interface IUserResponse extends IDataObject {
 	company: string;
 	email_verified: boolean;
 	notification_channels?: INotificationChannel[];
-} 
+}

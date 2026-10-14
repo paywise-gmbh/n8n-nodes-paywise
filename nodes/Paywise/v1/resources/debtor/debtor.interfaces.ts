@@ -53,4 +53,4 @@ export interface IDebtorData extends IDataObject {
 	bank_accounts?: IBankAccount[];
 	metadata?: IMetadata[];
 	events?: IEvent[];
-} 
+}

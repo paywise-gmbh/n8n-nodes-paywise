@@ -1,10 +1,9 @@
-import { INodeProperties } from 'n8n-workflow';
 import {
 	createClaim,
 	createClaimFields,
 	releaseClaim,
 	releaseClaimFields,
-	createAndReleaseClaim, 
+	createAndReleaseClaim,
 	createAndReleaseClaimFields,
 	getClaim,
 	getClaimFields,
@@ -66,9 +65,9 @@ export const claimOperations = [
 		],
 		default: 'list',
 	},
-	
+
 	// Fields for create operation
-	...createClaimFields.map(field => ({
+	...createClaimFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -79,9 +78,9 @@ export const claimOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for release operation
-	...releaseClaimFields.map(field => ({
+	...releaseClaimFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -92,9 +91,9 @@ export const claimOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for get operation
-	...getClaimFields.map(field => ({
+	...getClaimFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -105,9 +104,9 @@ export const claimOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for list operation
-	...listClaimsFields.map(field => ({
+	...listClaimsFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -118,11 +117,11 @@ export const claimOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for createAndRelease operation (extra fields not in create)
 	...createAndReleaseClaimFields
-		.filter(field => !createClaimFields.some(f => f.name === field.name))
-		.map(field => ({
+		.filter((field) => !createClaimFields.some((f) => f.name === field.name))
+		.map((field) => ({
 			...field,
 			displayOptions: {
 				...field.displayOptions,
@@ -133,9 +132,9 @@ export const claimOperations = [
 				},
 			},
 		})),
-		
+
 	// Fields for uploadDocument operation
-	...uploadDocumentFields.map(field => ({
+	...uploadDocumentFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -159,11 +158,4 @@ export const claimOperationMapping = {
 };
 
 // Export operations for direct access
-export {
-	createClaim,
-	releaseClaim,
-	createAndReleaseClaim,
-	getClaim,
-	listClaims,
-	uploadDocument,
-}; 
+export { createClaim, releaseClaim, createAndReleaseClaim, getClaim, listClaims, uploadDocument };

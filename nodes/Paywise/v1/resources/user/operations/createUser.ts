@@ -1,6 +1,12 @@
+import { NodeOperationError, JsonObject, INodeProperties } from 'n8n-workflow';
 import type { IExecuteFunctions } from 'n8n-workflow';
-import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addUserAgentHeader } from '../../../apiUtils';
+import {
+	ApiType,
+	getApiUrl,
+	addUserAgentHeader,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 import { IUserData } from '../user.interfaces';
 
 // Define operation field properties
@@ -35,7 +41,8 @@ export const createUserFields: INodeProperties[] = [
 				inputMethod: ['json'],
 			},
 		},
-		description: 'User data as JSON object. Must include at minimum: email, first_name, last_name, company',
+		description:
+			'User data as JSON object. Must include at minimum: email, first_name, last_name, company.',
 		hint: `Example: {
   "email": "user@example.com",
   "first_name": "Max",
@@ -123,7 +130,8 @@ export const createUserFields: INodeProperties[] = [
 				name: 'skip_email_verification',
 				type: 'boolean',
 				default: false,
-				description: 'If true, the user\'s email address will be considered verified without requiring user confirmation. Use only if you already validated the email in your own system.',
+				description:
+					"Whether the user's email address is considered verified without requiring user confirmation. Use only if you already validated the email in your own system.",
 			},
 		],
 	},
@@ -151,11 +159,10 @@ export const createUserFields: INodeProperties[] = [
 						displayName: 'Channel Type',
 						name: 'channel_type',
 						type: 'options',
-						options: [
-							{ name: 'Email', value: 'EMAIL' },
-						],
+						options: [{ name: 'Email', value: 'EMAIL' }],
 						default: 'EMAIL',
-						description: 'Type of notification channel. Currently only EMAIL is supported by the API.',
+						description:
+							'Type of notification channel. Currently only EMAIL is supported by the API.',
 					},
 					{
 						displayName: 'Value',
@@ -183,40 +190,37 @@ export const createUserFields: INodeProperties[] = [
 ];
 
 export async function createUser(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[createUser] operation function called');
-	
 	try {
 		// Determine input method
 		const inputMethod = this.getNodeParameter('inputMethod', 0) as string;
 		let userData: IUserData;
-		
+
 		if (inputMethod === 'json') {
 			// Get data from JSON input
 			const jsonString = this.getNodeParameter('jsonData', 0) as string;
-			
+
 			try {
 				userData = JSON.parse(jsonString) as IUserData;
-			} catch (e: any) {
-				throw new Error('Invalid JSON: ' + e.message);
+			} catch (e) {
+				throw new NodeOperationError(this.getNode(), 'Invalid JSON: ' + (e as Error).message);
 			}
-			
+
 			// Validate JSON input contains required fields
 			if (!userData.email) {
-				throw new Error('Email is required in JSON');
+				throw new NodeOperationError(this.getNode(), 'Email is required in JSON');
 			}
-			
+
 			if (!userData.first_name) {
-				throw new Error('First name is required in JSON');
+				throw new NodeOperationError(this.getNode(), 'First name is required in JSON');
 			}
-			
+
 			if (!userData.last_name) {
-				throw new Error('Last name is required in JSON');
+				throw new NodeOperationError(this.getNode(), 'Last name is required in JSON');
 			}
-			
+
 			if (!userData.company) {
-				throw new Error('Company ID is required in JSON');
+				throw new NodeOperationError(this.getNode(), 'Company ID is required in JSON');
 			}
-			
 		} else {
 			// Get user data from form fields
 			const email = this.getNodeParameter('email', 0) as string;
@@ -224,8 +228,12 @@ export async function createUser(this: IExecuteFunctions): Promise<JsonObject> {
 			const lastName = this.getNodeParameter('last_name', 0) as string;
 			const companyId = this.getNodeParameter('company', 0) as string;
 			const additionalFields = this.getNodeParameter('additionalFields', 0, {}) as JsonObject;
-			const notificationChannels = this.getNodeParameter('notificationChannels', 0, {}) as JsonObject;
-			
+			const notificationChannels = this.getNodeParameter(
+				'notificationChannels',
+				0,
+				{},
+			) as JsonObject;
+
 			// Build user data object
 			userData = {
 				email,
@@ -233,14 +241,14 @@ export async function createUser(this: IExecuteFunctions): Promise<JsonObject> {
 				last_name: lastName,
 				company: companyId,
 			};
-			
+
 			// Add optional fields
 			if (additionalFields) {
 				if (additionalFields.skip_email_verification !== undefined) {
 					userData.skip_email_verification = additionalFields.skip_email_verification as boolean;
 				}
 			}
-			
+
 			// Add notification channels
 			if (notificationChannels && notificationChannels.channels) {
 				const channels = notificationChannels.channels as Array<{
@@ -248,44 +256,35 @@ export async function createUser(this: IExecuteFunctions): Promise<JsonObject> {
 					value: string;
 					notification_types: string[];
 				}>;
-				
-				userData.notification_channels = channels.map(channel => ({
+
+				userData.notification_channels = channels.map((channel) => ({
 					channel_type: channel.channel_type,
 					value: channel.value,
 					notification_types: channel.notification_types,
 				}));
 			}
 		}
-		
+
 		// Get API URL
 		const url = await getApiUrl.call(this, ApiType.PARTNER, 'users');
-		
+
 		// Make API request
 		const options = {
 			method: 'POST',
 			url,
 			headers: {
 				'Content-Type': 'application/json',
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 			body: JSON.stringify(userData),
 		};
-		
+
 		// Add User-Agent header (Partner API doesn't use X-User-Id)
 		const optionsWithHeaders = addUserAgentHeader(options);
-		
-		console.log('[createUser] Making authenticated API request to:', url);
-		
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[createUser] Response received successfully');
+
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[createUser] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

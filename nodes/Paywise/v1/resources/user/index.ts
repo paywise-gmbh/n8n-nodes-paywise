@@ -1,4 +1,3 @@
-import { INodeProperties } from 'n8n-workflow';
 import {
 	getUser,
 	getUserFields,
@@ -50,9 +49,9 @@ export const userOperations = [
 		],
 		default: 'list',
 	},
-	
+
 	// Fields for create operation
-	...createUserFields.map(field => ({
+	...createUserFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -63,9 +62,9 @@ export const userOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for get operation
-	...getUserFields.map(field => ({
+	...getUserFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -76,9 +75,9 @@ export const userOperations = [
 			},
 		},
 	})),
-	
+
 	// Fields for list operation
-	...listUsersFields.map(field => ({
+	...listUsersFields.map((field) => ({
 		...field,
 		displayOptions: {
 			...field.displayOptions,
@@ -104,11 +103,11 @@ export {
 	createUser,
 	getUser,
 	listUsers,
-	
+
 	// Interfaces
 	IUserData,
 	IUserCreateResponse,
 	IUserInviteData,
 	IUserInviteResponse,
 	IUserListResponse,
-}; 
+};

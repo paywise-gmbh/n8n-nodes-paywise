@@ -1,5 +1,3 @@
 import { getToken } from './getToken';
 
-export {
-	getToken,
-}; 
+export { getToken };

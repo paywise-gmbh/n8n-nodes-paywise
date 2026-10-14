@@ -9,7 +9,7 @@ import type {
 export class PaywiseV2Api implements ICredentialType {
 	name = 'paywiseV2Api';
 
-	displayName = 'Paywise V2 API';
+	displayName = 'Paywise Case Management API';
 
 	icon: Icon = { light: 'file:../icons/paywise.svg', dark: 'file:../icons/paywise.dark.svg' };
 

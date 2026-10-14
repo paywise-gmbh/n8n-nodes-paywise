@@ -12,4 +12,4 @@ export {
 	listCompanies,
 	updateCompanyFields,
 	updateCompany,
-}; 
+};

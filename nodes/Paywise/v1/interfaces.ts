@@ -31,4 +31,4 @@ export interface IResourceFunctions {
 export interface IResourceDescription {
 	operations: INodeProperties[];
 	properties: INodeProperties[];
-} 
+}

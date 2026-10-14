@@ -43,7 +43,7 @@ export const debtorOperations: INodeProperties[] = [
 		],
 		default: 'list',
 	},
-	
+
 	// Fields for create operation
 	...createDebtorFields.map((field: INodeProperties) => ({
 		...field,
@@ -56,7 +56,7 @@ export const debtorOperations: INodeProperties[] = [
 			},
 		},
 	})),
-	
+
 	// Fields for get operation
 	...getDebtorFields.map((field: INodeProperties) => ({
 		...field,
@@ -69,7 +69,7 @@ export const debtorOperations: INodeProperties[] = [
 			},
 		},
 	})),
-	
+
 	// Fields for list operation
 	...listDebtorsFields.map((field: INodeProperties) => ({
 		...field,
@@ -98,8 +98,4 @@ export const debtorOperationMapping = {
 };
 
 // Export operations for direct access
-export {
-	createDebtor,
-	getDebtor,
-	listDebtors,
-}; 
+export { createDebtor, getDebtor, listDebtors };

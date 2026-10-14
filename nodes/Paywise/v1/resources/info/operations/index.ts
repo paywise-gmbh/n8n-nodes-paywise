@@ -4,7 +4,7 @@ import { getInfo, getInfoFields } from './getInfo';
 export {
 	// Operations
 	getInfo,
-	
+
 	// Fields
 	getInfoFields,
-}; 
+};

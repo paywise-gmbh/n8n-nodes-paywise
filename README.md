@@ -13,10 +13,10 @@ In n8n, go to **Settings → Community Nodes → Install** and enter `@paywise/n
 
 ## Credentials
 
-Use the **Paywise V2 API** credential with the paywise node v2 and the trigger.
+Use the **Paywise Case Management API** credential with the paywise node v2 and the trigger.
 
 1. Create an API key in the paywise portal. Keys belong to your company; a sandbox key starts with `pw_sbx_`.
-2. In n8n, create a **Paywise V2 API** credential, pick the environment that matches the key (Production or Sandbox), and paste the key.
+2. In n8n, create a **Paywise Case Management API** credential, pick the environment that matches the key (Production or Sandbox), and paste the key.
 3. Save. n8n tests the key against `GET /v2/info/`.
 
 Each API key has scopes. Grant the scopes for the resources you use, e.g. `case:orders:write`, `case:debtors:write`, `case:payments:write`, `case:mandates:read`, `case:statements:read`, and `case:webhooks:write` for the trigger. See [Authentication and environments](https://docs.paywise.de/api-docs/essentials/authentication-and-environments).
@@ -42,6 +42,13 @@ A typical flow: create a debtor, create an order with its claims, upload documen
 ### Safe retries
 
 Every create, upload, report, submit and withdraw request carries an `Idempotency-Key`. The node derives it from the execution, item and request body, so **Retry On Fail** returns the original result instead of creating a duplicate. Set your own key under **Options → Idempotency Key** (e.g. your invoice number) to also deduplicate across executions for 24 hours.
+
+## Example workflows
+
+Import these from the [`examples`](https://github.com/paywise-gmbh/n8n-nodes-paywise/tree/main/examples) folder (**Workflows → Import from File**) and select your paywise credential in each paywise node:
+
+- [Hand over an overdue invoice](examples/hand-over-overdue-invoice.json): creates the debtor, then creates and submits the order. The invoice number serves as idempotency key, so running it twice does not create a second order.
+- [Follow accepted orders](examples/follow-accepted-orders.json): the trigger fires on **Order Accepted** and **Mandate State Changed**, reads the case and returns its reference number, state and open balance.
 
 ## Trigger
 

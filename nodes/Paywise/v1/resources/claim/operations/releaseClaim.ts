@@ -1,6 +1,12 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
+import {
+	ApiType,
+	getApiUrl,
+	addCommonHeaders,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 // Define operation field properties
 export const releaseClaimFields: INodeProperties[] = [
@@ -39,55 +45,41 @@ export const releaseClaimFields: INodeProperties[] = [
  */
 export function mapReleaseClaimParams(this: IExecuteFunctions): { claimId: string } {
 	const claimId = this.getNodeParameter('claimId', 0) as string;
-	
+
 	if (!claimId) {
 		throw new NodeOperationError(this.getNode(), 'Claim ID is required');
 	}
-	
+
 	return { claimId };
 }
 
 export async function releaseClaim(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[releaseClaim] operation function called');
-	
 	try {
 		// Map parameters
 		const { claimId } = mapReleaseClaimParams.call(this);
-		console.log('[releaseClaim] Parameters mapped:', { claimId });
-		
+
 		// Get API URL using the getApiUrl function
 		const url = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'claims', claimId);
-		
-		console.log('[releaseClaim] Using URL:', url);
-		
+
 		// Prepare request options
 		const options = {
 			method: 'PATCH',
 			url,
 			headers: {
 				'Content-Type': 'application/json',
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 			// JSON body for release action
 			body: JSON.stringify({
-				status: 'release',
+				submission_state: 'released',
 			}),
 		};
-		
+
 		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
 		const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
-		
-		console.log('[releaseClaim] Making authenticated API request');
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[releaseClaim] Response received successfully');
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[releaseClaim] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

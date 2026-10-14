@@ -1,9 +1,5 @@
 import { getToken } from './operations';
-import {
-	ITokenData,
-	ITokenResponse,
-} from './token.interfaces';
-import { INodeProperties } from 'n8n-workflow';
+import { ITokenData, ITokenResponse } from './token.interfaces';
 
 // Define the token resource operations
 export const tokenOperations = [
@@ -23,7 +19,7 @@ export const tokenOperations = [
 				value: 'get',
 				description: 'Get information about the current API token',
 				action: 'Get current token information',
-			}
+			},
 		],
 		default: 'get',
 	},
@@ -35,8 +31,4 @@ export const tokenOperationMapping = {
 };
 
 // Export operations for direct access
-export {
-	getToken,
-	ITokenData,
-	ITokenResponse,
-}; 
+export { getToken, ITokenData, ITokenResponse };
