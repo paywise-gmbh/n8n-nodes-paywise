@@ -1,6 +1,12 @@
+import { NodeOperationError, JsonObject, INodeProperties } from 'n8n-workflow';
 import type { IExecuteFunctions } from 'n8n-workflow';
-import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addUserAgentHeader } from '../../../apiUtils';
+import {
+	ApiType,
+	getApiUrl,
+	addUserAgentHeader,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 import { ICompanyData } from '../company.interfaces';
 
 // Define operation field properties
@@ -34,7 +40,8 @@ export const createCompanyFields: INodeProperties[] = [
 				inputMethod: ['json'],
 			},
 		},
-		description: 'Company data as JSON object. Must include at minimum: name, phone, address, legal_form, and tax_deduction_eligibility',
+		description:
+			'Company data as JSON object. Must include at minimum: name, phone, address, legal_form, and tax_deduction_eligibility.',
 		hint: `Example: {
   "name": "Example GmbH",
   "phone": "+49 123 456789",
@@ -211,52 +218,52 @@ export const createCompanyFields: INodeProperties[] = [
 				name: 'default_claim_type',
 				type: 'options',
 				options: [
-					{ name: 'Service Contract (H05)', value: 'H05' },
-					{ name: 'Goods Delivery (H43)', value: 'H43' },
-					{ name: 'Membership Fee (H22)', value: 'H22' },
-					{ name: 'Rent (H21)', value: 'H21' },
-					{ name: 'Sales Contract (H11)', value: 'H11' },
-					{ name: 'Contract for Work (H44)', value: 'H44' },
-					{ name: 'Handcraft Service (H08)', value: 'H08' },
-					{ name: 'Insurance Premium (H41)', value: 'H41' },
-					{ name: 'Course/Training Costs (H16)', value: 'H16' },
-					{ name: 'Hotel Costs (H10)', value: 'H10' },
-					{ name: 'Medical/Dental Service (H02)', value: 'H02' },
-					{ name: 'Contractual Compensation (H28)', value: 'H28' },
-					{ name: 'Repair Service (H26)', value: 'H26' },
-					{ name: 'Legal Fee (H24)', value: 'H24' },
-					{ name: 'Freight Costs (H06)', value: 'H06' },
-					{ name: 'Vehicle Rental (H18)', value: 'H18' },
-					{ name: 'Shipping Costs (H34)', value: 'H34' },
-					{ name: 'Residential Rent (H19)', value: 'H19' },
-					{ name: 'Utility Service (H42)', value: 'H42' },
-					{ name: 'Commercial Rent (H17)', value: 'H17' },
-					{ name: 'Newspaper/Magazine Subscription (H45)', value: 'H45' },
-					{ name: 'Unjust Enrichment (H37)', value: 'H37' },
 					{ name: 'Accident Compensation (H29)', value: 'H29' },
-					{ name: 'Newspaper Advertisement (H01)', value: 'H01' },
-					{ name: 'Veterinary Service (H78)', value: 'H78' },
-					{ name: 'Storage Costs (H14)', value: 'H14' },
-					{ name: 'Patient Transport Costs (H77)', value: 'H77' },
-					{ name: 'Broker Commission (H40)', value: 'H40' },
-					{ name: 'Leasing (H15)', value: 'H15' },
-					{ name: 'Lease (H23)', value: 'H23' },
-					{ name: 'Loan Repayment (H04)', value: 'H04' },
-					{ name: 'Rental Utilities (H20)', value: 'H20' },
-					{ name: 'Catering Costs (H79)', value: 'H79' },
-					{ name: 'Travel Contract (H75)', value: 'H75' },
 					{ name: 'Acknowledgment of Debt (H33)', value: 'H33' },
-					{ name: 'Out-of-court Settlement (H39)', value: 'H39' },
-					{ name: 'Daycare Fee (H70)', value: 'H70' },
-					{ name: 'Housing Association Fee (H90)', value: 'H90' },
-					{ name: 'Nursing Home Care (H09)', value: 'H09' },
-					{ name: 'Guarantee (H03)', value: 'H03' },
-					{ name: 'Business Management (H07)', value: 'H07' },
-					{ name: 'Current Account Settlement (H12)', value: 'H12' },
-					{ name: 'Hospital Costs (H13)', value: 'H13' },
 					{ name: 'Bank Account Overdraft (H36)', value: 'H36' },
+					{ name: 'Broker Commission (H40)', value: 'H40' },
+					{ name: 'Business Management (H07)', value: 'H07' },
+					{ name: 'Catering Costs (H79)', value: 'H79' },
+					{ name: 'Commercial Rent (H17)', value: 'H17' },
+					{ name: 'Contract for Work (H44)', value: 'H44' },
+					{ name: 'Contractual Compensation (H28)', value: 'H28' },
+					{ name: 'Course/Training Costs (H16)', value: 'H16' },
+					{ name: 'Current Account Settlement (H12)', value: 'H12' },
+					{ name: 'Daycare Fee (H70)', value: 'H70' },
+					{ name: 'Freight Costs (H06)', value: 'H06' },
+					{ name: 'Goods Delivery (H43)', value: 'H43' },
+					{ name: 'Guarantee (H03)', value: 'H03' },
+					{ name: 'Handcraft Service (H08)', value: 'H08' },
+					{ name: 'Hospital Costs (H13)', value: 'H13' },
 					{ name: 'Hospital Special Services (H61)', value: 'H61' },
+					{ name: 'Hotel Costs (H10)', value: 'H10' },
+					{ name: 'Housing Association Fee (H90)', value: 'H90' },
+					{ name: 'Insurance Premium (H41)', value: 'H41' },
+					{ name: 'Lease (H23)', value: 'H23' },
+					{ name: 'Leasing (H15)', value: 'H15' },
+					{ name: 'Legal Fee (H24)', value: 'H24' },
+					{ name: 'Loan Repayment (H04)', value: 'H04' },
+					{ name: 'Medical/Dental Service (H02)', value: 'H02' },
+					{ name: 'Membership Fee (H22)', value: 'H22' },
+					{ name: 'Newspaper Advertisement (H01)', value: 'H01' },
+					{ name: 'Newspaper/Magazine Subscription (H45)', value: 'H45' },
+					{ name: 'Nursing Home Care (H09)', value: 'H09' },
+					{ name: 'Out-of-Court Settlement (H39)', value: 'H39' },
+					{ name: 'Patient Transport Costs (H77)', value: 'H77' },
+					{ name: 'Rent (H21)', value: 'H21' },
+					{ name: 'Rental Utilities (H20)', value: 'H20' },
+					{ name: 'Repair Service (H26)', value: 'H26' },
+					{ name: 'Residential Rent (H19)', value: 'H19' },
+					{ name: 'Sales Contract (H11)', value: 'H11' },
+					{ name: 'Service Contract (H05)', value: 'H05' },
+					{ name: 'Shipping Costs (H34)', value: 'H34' },
+					{ name: 'Storage Costs (H14)', value: 'H14' },
 					{ name: 'Telecommunications (H76)', value: 'H76' },
+					{ name: 'Travel Contract (H75)', value: 'H75' },
+					{ name: 'Unjust Enrichment (H37)', value: 'H37' },
+					{ name: 'Utility Service (H42)', value: 'H42' },
+					{ name: 'Vehicle Rental (H18)', value: 'H18' },
+					{ name: 'Veterinary Service (H78)', value: 'H78' },
 				],
 				default: 'H05',
 				description: 'Default claim type for the company',
@@ -266,7 +273,7 @@ export const createCompanyFields: INodeProperties[] = [
 				name: 'iban',
 				type: 'string',
 				default: '',
-				description: 'Company\'s payout account IBAN (max 32 characters)',
+				description: "Company's payout account IBAN (max 32 characters)",
 				placeholder: 'DE89370400440532013000',
 			},
 			{
@@ -303,10 +310,10 @@ export const createCompanyFields: INodeProperties[] = [
 						name: 'type',
 						type: 'options',
 						options: [
-							{ name: 'Gesellschafter', value: 'gesellschafter' },
 							{ name: 'Geschäftsführer', value: 'geschaeftsführer' },
-							{ name: 'Komplementär', value: 'komplementaer' },
+							{ name: 'Gesellschafter', value: 'gesellschafter' },
 							{ name: 'Inhaber', value: 'inhaber' },
+							{ name: 'Komplementär', value: 'komplementaer' },
 							{ name: 'Vorstand', value: 'vorstand' },
 							// Add more types as needed
 						],
@@ -383,72 +390,81 @@ export const createCompanyFields: INodeProperties[] = [
 ];
 
 export async function createCompany(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[createCompany] operation function called');
-	
 	try {
 		// Determine input method
 		const inputMethod = this.getNodeParameter('inputMethod', 0) as string;
 		let company: ICompanyData;
-		
+
 		if (inputMethod === 'json') {
 			// Get data from JSON input
 			const jsonString = this.getNodeParameter('jsonData', 0) as string;
-			
+
 			try {
 				company = JSON.parse(jsonString) as ICompanyData;
-			} catch (e: any) {
-				throw new Error('Invalid JSON: ' + e.message);
+			} catch (e) {
+				throw new NodeOperationError(this.getNode(), 'Invalid JSON: ' + (e as Error).message);
 			}
-			
+
 			// Validate JSON input contains required fields
 			if (!company.name) {
-				throw new Error('Company name is required in JSON');
+				throw new NodeOperationError(this.getNode(), 'Company name is required in JSON');
 			}
-			
+
 			if (!company.phone) {
-				throw new Error('Company phone is required in JSON');
+				throw new NodeOperationError(this.getNode(), 'Company phone is required in JSON');
 			}
-			
+
 			if (!company.legal_form) {
-				throw new Error('Company legal form is required in JSON');
+				throw new NodeOperationError(this.getNode(), 'Company legal form is required in JSON');
 			}
-			
+
 			if (!company.tax_deduction_eligibility) {
-				throw new Error('Tax deduction eligibility is required in JSON');
+				throw new NodeOperationError(
+					this.getNode(),
+					'Tax deduction eligibility is required in JSON',
+				);
 			}
-			
+
 			if (!company.address) {
-				throw new Error('Company address is required in JSON');
+				throw new NodeOperationError(this.getNode(), 'Company address is required in JSON');
 			}
-			
+
 			if (!company.address.street) {
-				throw new Error('Street is required in company address JSON');
+				throw new NodeOperationError(this.getNode(), 'Street is required in company address JSON');
 			}
-			
+
 			if (!company.address.zip) {
-				throw new Error('ZIP code is required in company address JSON');
+				throw new NodeOperationError(
+					this.getNode(),
+					'ZIP code is required in company address JSON',
+				);
 			}
-			
+
 			if (!company.address.city) {
-				throw new Error('City is required in company address JSON');
+				throw new NodeOperationError(this.getNode(), 'City is required in company address JSON');
 			}
-			
+
 			if (!company.address.country) {
-				throw new Error('Country is required in company address JSON');
+				throw new NodeOperationError(this.getNode(), 'Country is required in company address JSON');
 			}
-			
+
 			// Tax deduction eligibility K requires VAT number
 			if (company.tax_deduction_eligibility === 'K' && !company.vat_number) {
-				throw new Error('VAT number is required when tax_deduction_eligibility is K');
+				throw new NodeOperationError(
+					this.getNode(),
+					'VAT number is required when tax_deduction_eligibility is K',
+				);
 			}
-			
 		} else {
 			// Get company data from form fields
 			const name = this.getNodeParameter('name', 0) as string;
 			const phone = this.getNodeParameter('phone', 0) as string;
 			const legal_form = this.getNodeParameter('legal_form', 0) as string;
-			const tax_deduction_eligibility = this.getNodeParameter('tax_deduction_eligibility', 0) as string;
-			
+			const tax_deduction_eligibility = this.getNodeParameter(
+				'tax_deduction_eligibility',
+				0,
+			) as string;
+
 			// Get address details
 			const addressDetails = this.getNodeParameter('addressDetails', 0, { address: {} }) as {
 				address: {
@@ -456,50 +472,50 @@ export async function createCompany(this: IExecuteFunctions): Promise<JsonObject
 					zip: string;
 					city: string;
 					country: string;
-				}
+				};
 			};
-			
+
 			// Verify required fields
 			if (!name) {
-				throw new Error('Company name is required');
+				throw new NodeOperationError(this.getNode(), 'Company name is required');
 			}
-			
+
 			if (!phone) {
-				throw new Error('Company phone is required');
+				throw new NodeOperationError(this.getNode(), 'Company phone is required');
 			}
-			
+
 			if (!legal_form) {
-				throw new Error('Company legal form is required');
+				throw new NodeOperationError(this.getNode(), 'Company legal form is required');
 			}
-			
+
 			if (!tax_deduction_eligibility) {
-				throw new Error('Tax deduction eligibility is required');
+				throw new NodeOperationError(this.getNode(), 'Tax deduction eligibility is required');
 			}
-			
+
 			// Verify required address information exists
 			if (!addressDetails || !addressDetails.address) {
-				throw new Error('Company address is required');
+				throw new NodeOperationError(this.getNode(), 'Company address is required');
 			}
-			
+
 			const addressData = addressDetails.address;
-			
+
 			// Validate address fields
 			if (!addressData.street) {
-				throw new Error('Street is required in company address');
+				throw new NodeOperationError(this.getNode(), 'Street is required in company address');
 			}
-			
+
 			if (!addressData.zip) {
-				throw new Error('ZIP code is required in company address');
+				throw new NodeOperationError(this.getNode(), 'ZIP code is required in company address');
 			}
-			
+
 			if (!addressData.city) {
-				throw new Error('City is required in company address');
+				throw new NodeOperationError(this.getNode(), 'City is required in company address');
 			}
-			
+
 			if (!addressData.country) {
-				throw new Error('Country is required in company address');
+				throw new NodeOperationError(this.getNode(), 'Country is required in company address');
 			}
-			
+
 			// Build company data object with required address
 			company = {
 				name,
@@ -513,95 +529,101 @@ export async function createCompany(this: IExecuteFunctions): Promise<JsonObject
 					country: addressData.country,
 				},
 			};
-			
+
 			// Add optional fields
 			const additionalFields = this.getNodeParameter('additionalFields', 0, {}) as JsonObject;
-			
+
 			if (additionalFields.vat_number) {
 				company.vat_number = additionalFields.vat_number as string;
 			}
-			
+
 			if (additionalFields.default_claim_type) {
 				company.default_claim_type = additionalFields.default_claim_type as string;
 			}
-			
+
 			if (additionalFields.iban) {
 				company.iban = additionalFields.iban as string;
 			}
-			
+
 			if (additionalFields.data_submission_completed !== undefined) {
 				company.data_submission_completed = additionalFields.data_submission_completed as boolean;
 			}
-			
+
 			// Add legal representatives
-			const legalRepresentatives = this.getNodeParameter('legalRepresentatives', 0, { representatives: [] }) as {
+			const legalRepresentatives = this.getNodeParameter('legalRepresentatives', 0, {
+				representatives: [],
+			}) as {
 				representatives: Array<{ type: string; name: string }>;
 			};
-			
-			if (legalRepresentatives && legalRepresentatives.representatives && legalRepresentatives.representatives.length > 0) {
-				company.legal_representatives = legalRepresentatives.representatives.map(rep => ({
+
+			if (
+				legalRepresentatives &&
+				legalRepresentatives.representatives &&
+				legalRepresentatives.representatives.length > 0
+			) {
+				company.legal_representatives = legalRepresentatives.representatives.map((rep) => ({
 					type: rep.type,
 					name: rep.name,
 				}));
 			}
-			
+
 			// Add notification channels
-			const notificationChannels = this.getNodeParameter('notificationChannels', 0, { channels: [] }) as {
+			const notificationChannels = this.getNodeParameter('notificationChannels', 0, {
+				channels: [],
+			}) as {
 				channels: Array<{
 					channel_type: string;
 					value: string;
 					notification_types: string[];
 				}>;
 			};
-			
-			if (notificationChannels && notificationChannels.channels && notificationChannels.channels.length > 0) {
-				company.notification_channels = notificationChannels.channels.map(channel => ({
+
+			if (
+				notificationChannels &&
+				notificationChannels.channels &&
+				notificationChannels.channels.length > 0
+			) {
+				company.notification_channels = notificationChannels.channels.map((channel) => ({
 					channel_type: channel.channel_type,
 					value: channel.value,
 					notification_types: channel.notification_types,
 				}));
 			}
 		}
-		
+
 		// Validate VAT number when tax deduction eligibility is K
 		if (company.tax_deduction_eligibility === 'K' && !company.vat_number) {
-			throw new Error('VAT number is required when tax_deduction_eligibility is K');
+			throw new NodeOperationError(
+				this.getNode(),
+				'VAT number is required when tax_deduction_eligibility is K',
+			);
 		}
-		
+
 		// Validate IBAN length
 		if (company.iban && company.iban.length > 32) {
-			throw new Error('IBAN must not exceed 32 characters');
+			throw new NodeOperationError(this.getNode(), 'IBAN must not exceed 32 characters');
 		}
-		
+
 		// Get API URL
 		const url = await getApiUrl.call(this, ApiType.PARTNER, 'companies');
-		
+
 		// Make API request
 		const options = {
 			method: 'POST',
 			url,
 			headers: {
 				'Content-Type': 'application/json',
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 			body: JSON.stringify(company),
 		};
-		
+
 		// Add User-Agent header (Partner API doesn't use X-User-Id)
 		const optionsWithHeaders = addUserAgentHeader(options);
-		
-		console.log('[createCompany] Making authenticated API request to:', url);
-		
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[createCompany] Response received successfully');
+
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[createCompany] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

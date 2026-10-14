@@ -1,7 +1,13 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { IClaimData, IClaimItem, IAdditionalCharge, IPayment } from '../claim.interfaces';
-import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
+import { IClaimData, IAdditionalCharge, IEvent, IPayment } from '../claim.interfaces';
+import {
+	ApiType,
+	getApiUrl,
+	addCommonHeaders,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 // Define operation field properties
 export const createClaimFields: INodeProperties[] = [
@@ -185,7 +191,8 @@ export const createClaimFields: INodeProperties[] = [
 				resource: ['claim'],
 			},
 		},
-		description: 'Claim data as JSON object including all required and optional fields according to the API specification',
+		description:
+			'Claim data as JSON object including all required and optional fields according to the API specification',
 	},
 	// Basic Create Claim Fields
 	{
@@ -328,21 +335,20 @@ export const createClaimFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		placeholder: 'YYYY-MM-DD',
-		required: false,
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
 				resource: ['claim'],
 			},
 		},
-		description: 'The date of emergence of the principal claim ("Vertragsdatum") in YYYY-MM-DD format',
+		description:
+			'The date of emergence of the principal claim ("Vertragsdatum") in YYYY-MM-DD format',
 	},
 	{
 		displayName: 'Document Reference',
 		name: 'document_reference',
 		type: 'string',
 		default: '',
-		required: false,
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
@@ -357,7 +363,6 @@ export const createClaimFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		placeholder: 'YYYY-MM-DD',
-		required: false,
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
@@ -372,14 +377,14 @@ export const createClaimFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		placeholder: 'YYYY-MM-DD',
-		required: false,
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
 				resource: ['claim'],
 			},
 		},
-		description: 'The date of your first reminder ("Mahnung") to your customer in YYYY-MM-DD format',
+		description:
+			'The date of your first reminder ("Mahnung") to your customer in YYYY-MM-DD format',
 	},
 	{
 		displayName: 'Delay Date',
@@ -387,14 +392,14 @@ export const createClaimFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		placeholder: 'YYYY-MM-DD',
-		required: false,
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
 				resource: ['claim'],
 			},
 		},
-		description: 'The date from which your debtor is in delay ("Verzugsdatum") in YYYY-MM-DD format',
+		description:
+			'The date from which your debtor is in delay ("Verzugsdatum") in YYYY-MM-DD format',
 	},
 	{
 		displayName: 'Starting Approach',
@@ -474,6 +479,30 @@ export const createClaimFields: INodeProperties[] = [
 				displayName: 'Item',
 				values: [
 					{
+						displayName: 'Amount Currency',
+						name: 'amount_currency',
+						type: 'options',
+						options: [
+							{
+								name: 'EUR',
+								value: 'EUR',
+							},
+							{
+								name: 'USD',
+								value: 'USD',
+							},
+						],
+						default: 'EUR',
+						description: 'Currency of the item amount',
+					},
+					{
+						displayName: 'Amount Value',
+						name: 'amount_value',
+						type: 'string',
+						default: '',
+						description: 'Amount value of the item',
+					},
+					{
 						displayName: 'Description',
 						name: 'description',
 						type: 'string',
@@ -494,30 +523,6 @@ export const createClaimFields: INodeProperties[] = [
 						default: '',
 						description: 'Unit of the item',
 					},
-					{
-						displayName: 'Amount Value',
-						name: 'amount_value',
-						type: 'string',
-						default: '',
-						description: 'Amount value of the item',
-					},
-					{
-						displayName: 'Amount Currency',
-						name: 'amount_currency',
-						type: 'options',
-						options: [
-							{
-								name: 'EUR',
-								value: 'EUR',
-							},
-							{
-								name: 'USD',
-								value: 'USD',
-							},
-						],
-						default: 'EUR',
-						description: 'Currency of the item amount',
-					},
 				],
 			},
 		],
@@ -528,7 +533,6 @@ export const createClaimFields: INodeProperties[] = [
 		name: 'additional_charges_amount_value',
 		type: 'string',
 		default: '',
-		required: false,
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
@@ -552,7 +556,6 @@ export const createClaimFields: INodeProperties[] = [
 			},
 		],
 		default: 'EUR',
-		required: false,
 		displayOptions: {
 			show: {
 				inputType: ['fields'],
@@ -582,58 +585,6 @@ export const createClaimFields: INodeProperties[] = [
 				displayName: 'Additional Charge',
 				values: [
 					{
-						displayName: 'Your Reference',
-						name: 'your_reference',
-						type: 'string',
-						default: '',
-						description: 'Your reference for this charge',
-					},
-					{
-						displayName: 'Document Reference',
-						name: 'document_reference',
-						type: 'string',
-						default: '',
-						description: 'Document reference for this charge',
-					},
-					{
-						displayName: 'Subject Matter',
-						name: 'subject_matter',
-						type: 'string',
-						default: '',
-						description: 'Description of the charge',
-					},
-					{
-						displayName: 'Occurrence Date',
-						name: 'occurence_date',
-						type: 'string',
-						default: '',
-						placeholder: 'YYYY-MM-DD',
-						description: 'Occurrence date of the charge in YYYY-MM-DD format',
-					},
-					{
-						displayName: 'Document Date',
-						name: 'document_date',
-						type: 'string',
-						default: '',
-						placeholder: 'YYYY-MM-DD',
-						description: 'Document date of the charge in YYYY-MM-DD format',
-					},
-					{
-						displayName: 'Due Date',
-						name: 'due_date',
-						type: 'string',
-						default: '',
-						placeholder: 'YYYY-MM-DD',
-						description: 'Due date of the charge in YYYY-MM-DD format',
-					},
-					{
-						displayName: 'Amount Value',
-						name: 'amount_value',
-						type: 'string',
-						default: '',
-						description: 'Amount value of the charge',
-					},
-					{
 						displayName: 'Amount Currency',
 						name: 'amount_currency',
 						type: 'options',
@@ -651,13 +602,40 @@ export const createClaimFields: INodeProperties[] = [
 						description: 'Currency of the charge amount',
 					},
 					{
+						displayName: 'Amount Value',
+						name: 'amount_value',
+						type: 'string',
+						default: '',
+						description: 'Amount value of the charge',
+					},
+					{
+						displayName: 'Document Date',
+						name: 'document_date',
+						type: 'string',
+						default: '',
+						placeholder: 'YYYY-MM-DD',
+						description: 'Document date of the charge in YYYY-MM-DD format',
+					},
+					{
+						displayName: 'Document Reference',
+						name: 'document_reference',
+						type: 'string',
+						default: '',
+						description: 'Document reference for this charge',
+					},
+					{
+						displayName: 'Due Date',
+						name: 'due_date',
+						type: 'string',
+						default: '',
+						placeholder: 'YYYY-MM-DD',
+						description: 'Due date of the charge in YYYY-MM-DD format',
+					},
+					{
 						displayName: 'Events',
 						name: 'events',
 						placeholder: 'Add Event',
 						type: 'fixedCollection',
-						typeOptions: {
-							multipleValues: true,
-						},
 						default: {},
 						description: 'Events related to this additional charge',
 						options: [
@@ -665,36 +643,6 @@ export const createClaimFields: INodeProperties[] = [
 								name: 'eventsValues',
 								displayName: 'Event',
 								values: [
-									{
-										displayName: 'Title',
-										name: 'title',
-										type: 'string',
-										default: '',
-										required: true,
-										description: 'Title of the event',
-									},
-									{
-										displayName: 'Occurrence Date',
-										name: 'occurence',
-										type: 'string',
-										default: '',
-										required: true,
-										description: 'Date when the event occurred in ISO format (e.g., "2019-08-24T14:15:22Z")',
-									},
-									{
-										displayName: 'Type',
-										name: 'type',
-										type: 'string',
-										default: 'invoice',
-										description: 'Type of event (e.g., "invoice")',
-									},
-									{
-										displayName: 'Your Reference',
-										name: 'your_reference',
-										type: 'string',
-										default: '',
-										description: 'Your reference for this event',
-									},
 									{
 										displayName: 'Description',
 										name: 'description',
@@ -709,9 +657,62 @@ export const createClaimFields: INodeProperties[] = [
 										default: '',
 										description: 'Location of the event',
 									},
+									{
+										displayName: 'Occurrence Date',
+										name: 'occurence',
+										type: 'string',
+										default: '',
+										required: true,
+										description:
+											"Date when the event occurred in ISO format (e.g., '2019-08-24T14:15:22Z')",
+									},
+									{
+										displayName: 'Title',
+										name: 'title',
+										type: 'string',
+										default: '',
+										required: true,
+										description: 'Title of the event',
+									},
+									{
+										displayName: 'Type',
+										name: 'type',
+										type: 'string',
+										default: 'invoice',
+										description: "Type of event (e.g., 'invoice')",
+									},
+									{
+										displayName: 'Your Reference',
+										name: 'your_reference',
+										type: 'string',
+										default: '',
+										description: 'Your reference for this event',
+									},
 								],
 							},
 						],
+					},
+					{
+						displayName: 'Occurrence Date',
+						name: 'occurence_date',
+						type: 'string',
+						default: '',
+						placeholder: 'YYYY-MM-DD',
+						description: 'Occurrence date of the charge in YYYY-MM-DD format',
+					},
+					{
+						displayName: 'Subject Matter',
+						name: 'subject_matter',
+						type: 'string',
+						default: '',
+						description: 'Description of the charge',
+					},
+					{
+						displayName: 'Your Reference',
+						name: 'your_reference',
+						type: 'string',
+						default: '',
+						description: 'Your reference for this charge',
 					},
 				],
 			},
@@ -739,20 +740,6 @@ export const createClaimFields: INodeProperties[] = [
 				displayName: 'Payment',
 				values: [
 					{
-						displayName: 'Your Reference',
-						name: 'your_reference',
-						type: 'string',
-						default: '',
-						description: 'Your reference for this payment',
-					},
-					{
-						displayName: 'Amount Value',
-						name: 'amount_value',
-						type: 'string',
-						default: '',
-						description: 'Amount value of the payment',
-					},
-					{
 						displayName: 'Amount Currency',
 						name: 'amount_currency',
 						type: 'options',
@@ -770,21 +757,17 @@ export const createClaimFields: INodeProperties[] = [
 						description: 'Currency of the payment amount',
 					},
 					{
-						displayName: 'Value Date',
-						name: 'value_date',
+						displayName: 'Amount Value',
+						name: 'amount_value',
 						type: 'string',
 						default: '',
-						placeholder: 'YYYY-MM-DD',
-						description: 'Date of the payment in YYYY-MM-DD format',
+						description: 'Amount value of the payment',
 					},
 					{
 						displayName: 'Metadata',
 						name: 'metadata',
 						placeholder: 'Add Metadata',
 						type: 'fixedCollection',
-						typeOptions: {
-							multipleValues: true,
-						},
 						default: {},
 						description: 'Metadata for this payment',
 						options: [
@@ -798,7 +781,7 @@ export const createClaimFields: INodeProperties[] = [
 										type: 'string',
 										default: '',
 										required: true,
-										description: 'Type of metadata (e.g., "invoice:reference")',
+										description: "Type of metadata (e.g., 'invoice:reference')",
 									},
 									{
 										displayName: 'Value',
@@ -811,6 +794,21 @@ export const createClaimFields: INodeProperties[] = [
 								],
 							},
 						],
+					},
+					{
+						displayName: 'Value Date',
+						name: 'value_date',
+						type: 'string',
+						default: '',
+						placeholder: 'YYYY-MM-DD',
+						description: 'Date of the payment in YYYY-MM-DD format',
+					},
+					{
+						displayName: 'Your Reference',
+						name: 'your_reference',
+						type: 'string',
+						default: '',
+						description: 'Your reference for this payment',
 					},
 				],
 			},
@@ -879,36 +877,6 @@ export const createClaimFields: INodeProperties[] = [
 				displayName: 'Event',
 				values: [
 					{
-						displayName: 'Title',
-						name: 'title',
-						type: 'string',
-						default: '',
-						required: true,
-						description: 'Title of the event',
-					},
-					{
-						displayName: 'Occurrence Date',
-						name: 'occurence',
-						type: 'string',
-						default: '',
-						required: true,
-						description: 'Date when the event occurred in ISO format (e.g., "2019-08-24T14:15:22Z")',
-					},
-					{
-						displayName: 'Type',
-						name: 'type',
-						type: 'string',
-						default: 'delivery',
-						description: 'Type of event (e.g., "delivery", "invoice")',
-					},
-					{
-						displayName: 'Your Reference',
-						name: 'your_reference',
-						type: 'string',
-						default: '',
-						description: 'Your reference for this event',
-					},
-					{
 						displayName: 'Description',
 						name: 'description',
 						type: 'string',
@@ -921,6 +889,37 @@ export const createClaimFields: INodeProperties[] = [
 						type: 'string',
 						default: '',
 						description: 'Location of the event',
+					},
+					{
+						displayName: 'Occurrence Date',
+						name: 'occurence',
+						type: 'string',
+						default: '',
+						required: true,
+						description:
+							"Date when the event occurred in ISO format (e.g., '2019-08-24T14:15:22Z')",
+					},
+					{
+						displayName: 'Title',
+						name: 'title',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'Title of the event',
+					},
+					{
+						displayName: 'Type',
+						name: 'type',
+						type: 'string',
+						default: 'delivery',
+						description: "Type of event (e.g., 'delivery', 'invoice')",
+					},
+					{
+						displayName: 'Your Reference',
+						name: 'your_reference',
+						type: 'string',
+						default: '',
+						description: 'Your reference for this event',
 					},
 				],
 			},
@@ -936,34 +935,26 @@ export function validateClaimData(this: IExecuteFunctions, claimData: IClaimData
 	// Format all dates to ensure they're in YYYY-MM-DD format
 	claimData.due_date = formatDate(claimData.due_date) as string;
 	claimData.occurence_date = formatDate(claimData.occurence_date);
-	claimData.document_date = formatDate(claimData.document_date); 
+	claimData.document_date = formatDate(claimData.document_date);
 	claimData.reminder_date = formatDate(claimData.reminder_date);
 	claimData.delay_date = formatDate(claimData.delay_date);
-	
+
 	// Format payment dates if present
 	if (claimData.payments && claimData.payments.length > 0) {
-		claimData.payments.forEach(payment => {
+		claimData.payments.forEach((payment) => {
 			payment.value_date = formatDate(payment.value_date) as string;
 		});
 	}
-	
+
 	// Format additional charge dates if present
 	if (claimData.additional_charges && claimData.additional_charges.length > 0) {
-		claimData.additional_charges.forEach(charge => {
+		claimData.additional_charges.forEach((charge) => {
 			charge.occurence_date = formatDate(charge.occurence_date);
 			charge.document_date = formatDate(charge.document_date);
 			charge.due_date = formatDate(charge.due_date);
 		});
 	}
-	
-	// Log information about additional charges configuration
-	if (claimData.additional_charges_amount) {
-		console.log('[validateClaimData] Additional charges amount provided:', claimData.additional_charges_amount);
-		if (!claimData.additional_charges || claimData.additional_charges.length === 0) {
-			console.log('[validateClaimData] Additional charges amount provided without individual charges - this is allowed');
-		}
-	}
-	
+
 	// Required fields validation
 	const requiredFields = [
 		{ key: 'debtor', label: 'Debtor ID' },
@@ -974,298 +965,287 @@ export function validateClaimData(this: IExecuteFunctions, claimData: IClaimData
 		{ key: 'main_claim_amount', label: 'Main Claim Amount' },
 		{ key: 'starting_approach', label: 'Starting Approach' },
 		{ key: 'claim_disputed', label: 'Claim Disputed' },
-		{ key: 'obligation_fulfilled', label: 'Obligation Fulfilled' }
+		{ key: 'obligation_fulfilled', label: 'Obligation Fulfilled' },
 	];
-	
+
 	for (const field of requiredFields) {
-		if (claimData[field.key] === undefined || claimData[field.key] === null || claimData[field.key] === '') {
-			throw new NodeOperationError(this.getNode(), `Required field "${field.label}" is missing or empty`);
+		if (
+			claimData[field.key] === undefined ||
+			claimData[field.key] === null ||
+			claimData[field.key] === ''
+		) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Required field "${field.label}" is missing or empty`,
+			);
 		}
 	}
-	
+
 	// Amount validations
 	if (!claimData.main_claim_amount || !claimData.main_claim_amount.value) {
-		throw new NodeOperationError(
-			this.getNode(),
-			`Main claim amount value is missing`
-		);
+		throw new NodeOperationError(this.getNode(), `Main claim amount value is missing`);
 	}
-	
+
 	if (!claimData.total_claim_amount || !claimData.total_claim_amount.value) {
-		throw new NodeOperationError(
-			this.getNode(),
-			`Total claim amount value is missing`
-		);
+		throw new NodeOperationError(this.getNode(), `Total claim amount value is missing`);
 	}
-	
+
 	// Date format validation
 	const dateFields = [
 		{ key: 'due_date', label: 'Due Date' },
 		{ key: 'occurence_date', label: 'Occurrence Date', optional: true },
 		{ key: 'document_date', label: 'Document Date', optional: true },
 		{ key: 'reminder_date', label: 'Reminder Date', optional: true },
-		{ key: 'delay_date', label: 'Delay Date', optional: true }
+		{ key: 'delay_date', label: 'Delay Date', optional: true },
 	];
-	
+
 	for (const field of dateFields) {
 		if (claimData[field.key] || !field.optional) {
 			if (!/^\d{4}-\d{2}-\d{2}$/.test(claimData[field.key] as string)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`${field.label} must be in YYYY-MM-DD format, got: ${claimData[field.key]}`
+					`${field.label} must be in YYYY-MM-DD format, got: ${claimData[field.key]}`,
 				);
 			}
 		}
 	}
-	
+
 	// StartingApproach validation
-	if (claimData.starting_approach && !['extrajudicial', 'judicial', 'mail'].includes(claimData.starting_approach)) {
+	if (
+		claimData.starting_approach &&
+		!['extrajudicial', 'judicial', 'mail'].includes(claimData.starting_approach)
+	) {
 		throw new NodeOperationError(
 			this.getNode(),
-			`Starting Approach must be either 'extrajudicial', 'judicial', or 'mail', got: ${claimData.starting_approach}`
+			`Starting Approach must be either 'extrajudicial', 'judicial', or 'mail', got: ${claimData.starting_approach}`,
 		);
 	}
-	
+
 	// Boolean field validations
 	if (claimData.claim_disputed !== undefined && typeof claimData.claim_disputed !== 'boolean') {
 		throw new NodeOperationError(
 			this.getNode(),
-			`Claim Disputed must be a boolean, got: ${typeof claimData.claim_disputed}`
+			`Claim Disputed must be a boolean, got: ${typeof claimData.claim_disputed}`,
 		);
 	}
-	
-	if (claimData.obligation_fulfilled !== undefined && typeof claimData.obligation_fulfilled !== 'boolean') {
+
+	if (
+		claimData.obligation_fulfilled !== undefined &&
+		typeof claimData.obligation_fulfilled !== 'boolean'
+	) {
 		throw new NodeOperationError(
 			this.getNode(),
-			`Obligation Fulfilled must be a boolean, got: ${typeof claimData.obligation_fulfilled}`
+			`Obligation Fulfilled must be a boolean, got: ${typeof claimData.obligation_fulfilled}`,
 		);
 	}
-	
+
 	// Validate items if present
 	if (claimData.items && claimData.items.length > 0) {
 		claimData.items.forEach((item, index) => {
 			if (!item.description) {
-				throw new NodeOperationError(
-					this.getNode(),
-					`Item #${index + 1} is missing a description`
-				);
+				throw new NodeOperationError(this.getNode(), `Item #${index + 1} is missing a description`);
 			}
-			
+
 			if (typeof item.quantity !== 'number' || item.quantity <= 0) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Item #${index + 1} must have a positive quantity, got: ${item.quantity}`
+					`Item #${index + 1} must have a positive quantity, got: ${item.quantity}`,
 				);
 			}
-			
+
 			if (!item.amount) {
-				throw new NodeOperationError(
-					this.getNode(),
-					`Item #${index + 1} is missing an amount`
-				);
+				throw new NodeOperationError(this.getNode(), `Item #${index + 1} is missing an amount`);
 			}
-			
+
 			if (!item.amount.value || !/^\d+(\.\d{1,2})?$/.test(item.amount.value)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Item #${index + 1} has an invalid amount value: ${item.amount?.value}`
+					`Item #${index + 1} has an invalid amount value: ${item.amount?.value}`,
 				);
 			}
-			
+
 			const validCurrencies = ['EUR', 'USD'];
 			if (!validCurrencies.includes(item.amount.currency)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Item #${index + 1} has an unsupported currency: ${item.amount.currency}. Supported currencies: ${validCurrencies.join(', ')}`
+					`Item #${index + 1} has an unsupported currency: ${item.amount.currency}. Supported currencies: ${validCurrencies.join(', ')}`,
 				);
 			}
 		});
 	}
-	
+
 	// Validate additional charges if present
 	if (claimData.additional_charges && claimData.additional_charges.length > 0) {
 		claimData.additional_charges.forEach((charge, index) => {
 			if (!charge.subject_matter) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Additional charge #${index + 1} is missing a subject matter`
+					`Additional charge #${index + 1} is missing a subject matter`,
 				);
 			}
-			
+
 			if (!charge.amount) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Additional charge #${index + 1} is missing an amount`
+					`Additional charge #${index + 1} is missing an amount`,
 				);
 			}
-			
+
 			if (!charge.amount.value || !/^\d+(\.\d{1,2})?$/.test(charge.amount.value)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Additional charge #${index + 1} has an invalid amount value: ${charge.amount?.value}`
+					`Additional charge #${index + 1} has an invalid amount value: ${charge.amount?.value}`,
 				);
 			}
-			
+
 			const validCurrencies = ['EUR', 'USD'];
 			if (!validCurrencies.includes(charge.amount.currency)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Additional charge #${index + 1} has an unsupported currency: ${charge.amount.currency}. Supported currencies: ${validCurrencies.join(', ')}`
+					`Additional charge #${index + 1} has an unsupported currency: ${charge.amount.currency}. Supported currencies: ${validCurrencies.join(', ')}`,
 				);
 			}
-			
+
 			// Validate dates if provided
 			if (charge.occurence_date && !/^\d{4}-\d{2}-\d{2}$/.test(charge.occurence_date)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Additional charge #${index + 1} has an invalid occurrence date format: ${charge.occurence_date}`
+					`Additional charge #${index + 1} has an invalid occurrence date format: ${charge.occurence_date}`,
 				);
 			}
-			
+
 			if (charge.document_date && !/^\d{4}-\d{2}-\d{2}$/.test(charge.document_date)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Additional charge #${index + 1} has an invalid document date format: ${charge.document_date}`
+					`Additional charge #${index + 1} has an invalid document date format: ${charge.document_date}`,
 				);
 			}
-			
+
 			if (charge.due_date && !/^\d{4}-\d{2}-\d{2}$/.test(charge.due_date)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Additional charge #${index + 1} has an invalid due date format: ${charge.due_date}`
+					`Additional charge #${index + 1} has an invalid due date format: ${charge.due_date}`,
 				);
 			}
 		});
 	}
-	
+
 	// Validate additional charges amount if present
 	if (claimData.additional_charges_amount) {
-		if (!claimData.additional_charges_amount.value || !/^\d+(\.\d{1,2})?$/.test(claimData.additional_charges_amount.value)) {
+		if (
+			!claimData.additional_charges_amount.value ||
+			!/^\d+(\.\d{1,2})?$/.test(claimData.additional_charges_amount.value)
+		) {
 			throw new NodeOperationError(
 				this.getNode(),
-				`Additional charges sum has an invalid amount value: ${claimData.additional_charges_amount.value}`
+				`Additional charges sum has an invalid amount value: ${claimData.additional_charges_amount.value}`,
 			);
 		}
-		
+
 		const validCurrencies = ['EUR', 'USD'];
 		if (!validCurrencies.includes(claimData.additional_charges_amount.currency)) {
 			throw new NodeOperationError(
 				this.getNode(),
-				`Additional charges sum has an unsupported currency: ${claimData.additional_charges_amount.currency}. Supported currencies: ${validCurrencies.join(', ')}`
+				`Additional charges sum has an unsupported currency: ${claimData.additional_charges_amount.currency}. Supported currencies: ${validCurrencies.join(', ')}`,
 			);
 		}
 	}
-	
+
 	// Validate payments if present
 	if (claimData.payments && claimData.payments.length > 0) {
 		claimData.payments.forEach((payment, index) => {
 			if (!payment.your_reference) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Payment #${index + 1} is missing a reference`
+					`Payment #${index + 1} is missing a reference`,
 				);
 			}
-			
+
 			if (!payment.amount) {
-				throw new NodeOperationError(
-					this.getNode(),
-					`Payment #${index + 1} is missing an amount`
-				);
+				throw new NodeOperationError(this.getNode(), `Payment #${index + 1} is missing an amount`);
 			}
-			
+
 			if (!payment.amount.value || !/^\d+(\.\d{1,2})?$/.test(payment.amount.value)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Payment #${index + 1} has an invalid amount value: ${payment.amount?.value}`
+					`Payment #${index + 1} has an invalid amount value: ${payment.amount?.value}`,
 				);
 			}
-			
+
 			const validCurrencies = ['EUR', 'USD'];
 			if (!validCurrencies.includes(payment.amount.currency)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Payment #${index + 1} has an unsupported currency: ${payment.amount.currency}. Supported currencies: ${validCurrencies.join(', ')}`
+					`Payment #${index + 1} has an unsupported currency: ${payment.amount.currency}. Supported currencies: ${validCurrencies.join(', ')}`,
 				);
 			}
-			
+
 			if (!payment.value_date) {
-				throw new NodeOperationError(
-					this.getNode(),
-					`Payment #${index + 1} is missing a date`
-				);
+				throw new NodeOperationError(this.getNode(), `Payment #${index + 1} is missing a date`);
 			}
-			
+
 			if (!/^\d{4}-\d{2}-\d{2}$/.test(payment.value_date)) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Payment #${index + 1} has an invalid date format: ${payment.value_date}`
+					`Payment #${index + 1} has an invalid date format: ${payment.value_date}`,
 				);
 			}
-			
+
 			// Validate payment metadata if present
 			if (payment.metadata && payment.metadata.length > 0) {
 				payment.metadata.forEach((metadata, metaIndex) => {
 					if (!metadata.type) {
 						throw new NodeOperationError(
 							this.getNode(),
-							`Payment #${index + 1} Metadata #${metaIndex + 1} is missing a type`
+							`Payment #${index + 1} Metadata #${metaIndex + 1} is missing a type`,
 						);
 					}
-					
+
 					if (metadata.value === undefined || metadata.value === null) {
 						throw new NodeOperationError(
 							this.getNode(),
-							`Payment #${index + 1} Metadata #${metaIndex + 1} is missing a value`
+							`Payment #${index + 1} Metadata #${metaIndex + 1} is missing a value`,
 						);
 					}
 				});
 			}
 		});
 	}
-	
+
 	// Validate metadata if present
 	if (claimData.metadata && claimData.metadata.length > 0) {
 		claimData.metadata.forEach((metadata, index) => {
 			if (!metadata.type) {
-				throw new NodeOperationError(
-					this.getNode(),
-					`Metadata #${index + 1} is missing a type`
-				);
+				throw new NodeOperationError(this.getNode(), `Metadata #${index + 1} is missing a type`);
 			}
-			
+
 			if (metadata.value === undefined || metadata.value === null) {
-				throw new NodeOperationError(
-					this.getNode(),
-					`Metadata #${index + 1} is missing a value`
-				);
+				throw new NodeOperationError(this.getNode(), `Metadata #${index + 1} is missing a value`);
 			}
 		});
 	}
-	
+
 	// Validate events if present
 	if (claimData.events && claimData.events.length > 0) {
 		claimData.events.forEach((event, index) => {
 			if (!event.title) {
-				throw new NodeOperationError(
-					this.getNode(),
-					`Event #${index + 1} is missing a title`
-				);
+				throw new NodeOperationError(this.getNode(), `Event #${index + 1} is missing a title`);
 			}
-			
+
 			if (!event.occurence) {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Event #${index + 1} is missing an occurrence date`
+					`Event #${index + 1} is missing an occurrence date`,
 				);
 			}
-			
+
 			// Check for valid ISO date format
 			try {
 				new Date(event.occurence).toISOString();
-			} catch (error) {
+			} catch {
 				throw new NodeOperationError(
 					this.getNode(),
-					`Event #${index + 1} has an invalid occurrence date format: ${event.occurence}. Should be in ISO format (e.g., "2022-09-03T14:15:22Z")`
+					`Event #${index + 1} has an invalid occurrence date format: ${event.occurence}. Should be in ISO format (e.g., "2022-09-03T14:15:22Z")`,
 				);
 			}
 		});
@@ -1285,7 +1265,7 @@ function formatDate(dateStr: string | undefined): string | undefined {
  */
 export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 	const inputType = this.getNodeParameter('inputType', 0) as string;
-	
+
 	if (inputType === 'json') {
 		const jsonData = JSON.parse(this.getNodeParameter('jsonData', 0) as string) as IClaimData;
 		// Ensure dates are in YYYY-MM-DD format
@@ -1294,31 +1274,39 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 		jsonData.document_date = formatDate(jsonData.document_date);
 		jsonData.reminder_date = formatDate(jsonData.reminder_date);
 		jsonData.delay_date = formatDate(jsonData.delay_date);
-		
+
 		if (jsonData.payments && jsonData.payments.length > 0) {
-			jsonData.payments.forEach(payment => {
+			jsonData.payments.forEach((payment) => {
 				payment.value_date = formatDate(payment.value_date) as string;
 			});
 		}
-		
+
 		if (jsonData.additional_charges && jsonData.additional_charges.length > 0) {
-			jsonData.additional_charges.forEach(charge => {
+			jsonData.additional_charges.forEach((charge) => {
 				charge.occurence_date = formatDate(charge.occurence_date);
 				charge.document_date = formatDate(charge.document_date);
 				charge.due_date = formatDate(charge.due_date);
 			});
 		}
-		
+
 		return jsonData;
 	}
-	
+
 	// Get basic claim information
 	const debtor = this.getNodeParameter('debtor', 0) as string;
 	const your_reference = this.getNodeParameter('your_reference', 0) as string;
 	const main_claim_amount_value = this.getNodeParameter('main_claim_amount_value', 0) as string;
-	const main_claim_amount_currency = this.getNodeParameter('main_claim_amount_currency', 0, 'EUR') as string;
+	const main_claim_amount_currency = this.getNodeParameter(
+		'main_claim_amount_currency',
+		0,
+		'EUR',
+	) as string;
 	const total_claim_amount_value = this.getNodeParameter('total_claim_amount_value', 0) as string;
-	const total_claim_amount_currency = this.getNodeParameter('total_claim_amount_currency', 0, 'EUR') as string;
+	const total_claim_amount_currency = this.getNodeParameter(
+		'total_claim_amount_currency',
+		0,
+		'EUR',
+	) as string;
 	const due_date = formatDate(this.getNodeParameter('due_date', 0) as string) as string;
 	const subject_matter = this.getNodeParameter('subject_matter', 0) as string;
 
@@ -1327,10 +1315,15 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 	const document_date = formatDate(this.getNodeParameter('document_date', 0, '') as string);
 	const reminder_date = formatDate(this.getNodeParameter('reminder_date', 0, '') as string);
 	const delay_date = formatDate(this.getNodeParameter('delay_date', 0, '') as string);
-	
+
 	// Get other optional fields
-	const document_reference = this.getNodeParameter('document_reference', 0, '') as string || undefined;
-	const starting_approach = this.getNodeParameter('starting_approach', 0, 'extrajudicial') as string;
+	const document_reference =
+		(this.getNodeParameter('document_reference', 0, '') as string) || undefined;
+	const starting_approach = this.getNodeParameter(
+		'starting_approach',
+		0,
+		'extrajudicial',
+	) as string;
 	const claim_disputed = this.getNodeParameter('claim_disputed', 0, false) as boolean;
 	const obligation_fulfilled = this.getNodeParameter('obligation_fulfilled', 0, true) as boolean;
 
@@ -1356,17 +1349,29 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 	}));
 
 	// Get additional charges
-	const additionalChargesAmountValue = this.getNodeParameter('additional_charges_amount_value', 0, '') as string;
-	const additionalChargesAmountCurrency = this.getNodeParameter('additional_charges_amount_currency', 0, 'EUR') as string;
-	
+	const additionalChargesAmountValue = this.getNodeParameter(
+		'additional_charges_amount_value',
+		0,
+		'',
+	) as string;
+	const additionalChargesAmountCurrency = this.getNodeParameter(
+		'additional_charges_amount_currency',
+		0,
+		'EUR',
+	) as string;
+
 	// Only create additional_charges_amount if we have a value
-	const additional_charges_amount = additionalChargesAmountValue ? {
-		value: additionalChargesAmountValue,
-		currency: additionalChargesAmountCurrency,
-	} : undefined;
+	const additional_charges_amount = additionalChargesAmountValue
+		? {
+				value: additionalChargesAmountValue,
+				currency: additionalChargesAmountCurrency,
+			}
+		: undefined;
 
 	// Get additional charges collection
-	const additionalChargesCollection = this.getNodeParameter('additional_charges', 0, { additionalChargesValues: [] }) as {
+	const additionalChargesCollection = this.getNodeParameter('additional_charges', 0, {
+		additionalChargesValues: [],
+	}) as {
 		additionalChargesValues: Array<{
 			your_reference: string;
 			document_reference: string;
@@ -1389,50 +1394,52 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 		}>;
 	};
 
-	const additional_charges = (additionalChargesCollection.additionalChargesValues || []).map((charge) => {
-		const chargeData: IAdditionalCharge = {
-			your_reference: charge.your_reference || undefined,
-			document_reference: charge.document_reference || undefined,
-			subject_matter: charge.subject_matter,
-			occurence_date: formatDate(charge.occurence_date),
-			document_date: formatDate(charge.document_date),
-			due_date: formatDate(charge.due_date),
-			amount: {
-				value: charge.amount_value,
-				currency: charge.amount_currency,
-			},
-		};
-		
-		// Add events if present
-		if (charge.events && charge.events.eventsValues && charge.events.eventsValues.length > 0) {
-			chargeData.events = charge.events.eventsValues.map(event => {
-				const eventData: any = {
-					title: event.title,
-					occurence: event.occurence,
-				};
-				
-				if (event.type) {
-					eventData.type = event.type;
-				}
-				
-				if (event.your_reference) {
-					eventData.your_reference = event.your_reference;
-				}
-				
-				if (event.description) {
-					eventData.description = event.description;
-				}
-				
-				if (event.location) {
-					eventData.location = event.location;
-				}
-				
-				return eventData;
-			});
-		}
-		
-		return chargeData;
-	});
+	const additional_charges = (additionalChargesCollection.additionalChargesValues || []).map(
+		(charge) => {
+			const chargeData: IAdditionalCharge = {
+				your_reference: charge.your_reference || undefined,
+				document_reference: charge.document_reference || undefined,
+				subject_matter: charge.subject_matter,
+				occurence_date: formatDate(charge.occurence_date),
+				document_date: formatDate(charge.document_date),
+				due_date: formatDate(charge.due_date),
+				amount: {
+					value: charge.amount_value,
+					currency: charge.amount_currency,
+				},
+			};
+
+			// Add events if present
+			if (charge.events && charge.events.eventsValues && charge.events.eventsValues.length > 0) {
+				chargeData.events = charge.events.eventsValues.map((event) => {
+					const eventData: IEvent = {
+						title: event.title,
+						occurence: event.occurence,
+					};
+
+					if (event.type) {
+						eventData.type = event.type;
+					}
+
+					if (event.your_reference) {
+						eventData.your_reference = event.your_reference;
+					}
+
+					if (event.description) {
+						eventData.description = event.description;
+					}
+
+					if (event.location) {
+						eventData.location = event.location;
+					}
+
+					return eventData;
+				});
+			}
+
+			return chargeData;
+		},
+	);
 
 	// Get payments
 	const paymentsCollection = this.getNodeParameter('payments', 0, { paymentsValues: [] }) as {
@@ -1461,8 +1468,12 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 		};
 
 		// Add metadata if present
-		if (payment.metadata && payment.metadata.metadataValues && payment.metadata.metadataValues.length > 0) {
-			paymentData.metadata = payment.metadata.metadataValues.map(item => ({
+		if (
+			payment.metadata &&
+			payment.metadata.metadataValues &&
+			payment.metadata.metadataValues.length > 0
+		) {
+			paymentData.metadata = payment.metadata.metadataValues.map((item) => ({
 				type: item.type,
 				value: item.value,
 			}));
@@ -1497,27 +1508,27 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 	};
 
 	const events = (eventsCollection.eventsValues || []).map((event) => {
-		const eventData: any = {
+		const eventData: IEvent = {
 			title: event.title,
 			occurence: event.occurence,
 		};
-		
+
 		if (event.type) {
 			eventData.type = event.type;
 		}
-		
+
 		if (event.your_reference) {
 			eventData.your_reference = event.your_reference;
 		}
-		
+
 		if (event.description) {
 			eventData.description = event.description;
 		}
-		
+
 		if (event.location) {
 			eventData.location = event.location;
 		}
-		
+
 		return eventData;
 	});
 
@@ -1590,46 +1601,31 @@ export function mapToClaimData(this: IExecuteFunctions): IClaimData {
 }
 
 export async function createClaim(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[createClaim] operation function called');
-	
 	try {
 		// Map node parameters to claim data
 		const claimData = mapToClaimData.call(this);
-		console.log('[createClaim] Data mapped, validating...');
-		
+
 		// Validate claim data before sending to API
 		validateClaimData.call(this, claimData);
-		console.log('[createClaim] Data validated successfully');
-		
+
 		// Make the API request
-		console.log('[createClaim] Getting credentials and preparing request');
-		const credentials = await this.getCredentials('paywiseApi');
 		const url = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'claims');
-		
+
 		const options = {
 			method: 'POST',
 			url: url,
 			headers: {
 				'Content-Type': 'application/json',
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 			body: claimData,
 		};
-		
+
 		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
 		const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
-		
-		console.log('[createClaim] Making authenticated API request');
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[createClaim] Response received successfully');
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[createClaim] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

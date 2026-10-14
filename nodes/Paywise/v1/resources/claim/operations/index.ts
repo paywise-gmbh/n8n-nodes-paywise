@@ -14,7 +14,7 @@ export {
 	getClaim,
 	listClaims,
 	uploadDocument,
-	
+
 	// Fields
 	createClaimFields,
 	releaseClaimFields,
@@ -22,4 +22,4 @@ export {
 	getClaimFields,
 	listClaimsFields,
 	uploadDocumentFields,
-}; 
+};

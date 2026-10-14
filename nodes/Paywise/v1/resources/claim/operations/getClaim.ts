@@ -1,6 +1,12 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
+import {
+	ApiType,
+	getApiUrl,
+	addCommonHeaders,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 // Define operation field properties
 export const getClaimFields: INodeProperties[] = [
@@ -37,66 +43,59 @@ export const getClaimFields: INodeProperties[] = [
 /**
  * Maps node parameters for getClaim operation
  */
-export function mapGetClaimParams(this: IExecuteFunctions): { claimId: string; actOnBehalfOfClient: boolean; userId?: string } {
+export function mapGetClaimParams(this: IExecuteFunctions): {
+	claimId: string;
+	actOnBehalfOfClient: boolean;
+	userId?: string;
+} {
 	const claimId = this.getNodeParameter('claimId', 0) as string;
 	const actOnBehalfOfClient = this.getNodeParameter('actOnBehalfOfClient', 0, false) as boolean;
-	
+
 	if (!claimId) {
 		throw new NodeOperationError(this.getNode(), 'Claim ID is required');
 	}
-	
+
 	const params: { claimId: string; actOnBehalfOfClient: boolean; userId?: string } = {
 		claimId,
 		actOnBehalfOfClient,
 	};
-	
+
 	if (actOnBehalfOfClient) {
 		params.userId = this.getNodeParameter('userId', 0) as string;
-		
+
 		if (!params.userId) {
-			throw new NodeOperationError(this.getNode(), 'User ID is required when acting on behalf of a client');
+			throw new NodeOperationError(
+				this.getNode(),
+				'User ID is required when acting on behalf of a client',
+			);
 		}
 	}
-	
+
 	return params;
 }
 
 export async function getClaim(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[getClaim] operation function called');
-	
 	try {
 		// Map parameters
 		const { claimId } = mapGetClaimParams.call(this);
-		console.log('[getClaim] Parameters mapped:', { claimId });
-		
+
 		// Get API URL using the getApiUrl function
 		const url = await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, 'claims', claimId);
-		
-		console.log('[getClaim] Using URL:', url);
-		
+
 		// Prepare headers
 		const options = {
 			method: 'GET',
 			url,
 			headers: {
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 		};
-		
+
 		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
 		const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
-		
-		console.log('[getClaim] Making authenticated API request');
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[getClaim] Response received successfully');
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[getClaim] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

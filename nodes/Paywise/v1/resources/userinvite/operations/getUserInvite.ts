@@ -1,6 +1,12 @@
+import { NodeOperationError, JsonObject, INodeProperties } from 'n8n-workflow';
 import type { IExecuteFunctions } from 'n8n-workflow';
-import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addUserAgentHeader } from '../../../apiUtils';
+import {
+	ApiType,
+	getApiUrl,
+	addUserAgentHeader,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 // Define operation field properties
 export const getUserInviteFields: INodeProperties[] = [
@@ -15,47 +21,31 @@ export const getUserInviteFields: INodeProperties[] = [
 ];
 
 export async function getUserInvite(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[getUserInvite] operation function called');
-	
 	try {
 		// Get invite ID from parameters
 		const inviteId = this.getNodeParameter('inviteId', 0) as string;
-		
+
 		if (!inviteId) {
-			throw new Error('User Invite ID is required');
+			throw new NodeOperationError(this.getNode(), 'User Invite ID is required');
 		}
-		
+
 		// Get API URL
-		const url = await getApiUrl.call(
-			this,
-			ApiType.PARTNER,
-			'user_invites',
-			inviteId,
-		);
-		
+		const url = await getApiUrl.call(this, ApiType.PARTNER, 'user_invites', inviteId);
+
 		// Make API request
 		const options = {
 			method: 'GET',
 			url,
 			headers: {
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 		};
-		
+
 		// Add User-Agent header (Partner API doesn't use X-User-Id)
 		const optionsWithHeaders = addUserAgentHeader(options);
-		
-		console.log('[getUserInvite] Making authenticated API request to:', url);
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[getUserInvite] Response received successfully');
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[getUserInvite] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

@@ -1,0 +1,104 @@
+{
+	"name": "paywise: follow accepted orders",
+	"nodes": [
+		{
+			"id": "t",
+			"name": "paywise Trigger",
+			"type": "@paywise/n8n-nodes-paywise.paywiseTrigger",
+			"typeVersion": 1,
+			"position": [0, 0],
+			"parameters": {
+				"events": ["order.accepted", "mandate.state.changed"],
+				"options": {}
+			},
+			"credentials": {
+				"paywiseV2Api": {
+					"id": "",
+					"name": "paywise"
+				}
+			}
+		},
+		{
+			"id": "m",
+			"name": "Get mandate",
+			"type": "@paywise/n8n-nodes-paywise.paywise",
+			"typeVersion": 2,
+			"position": [240, 0],
+			"parameters": {
+				"resource": "mandate",
+				"operation": "get",
+				"mandateId": "={{ $json.data.mandate_id }}"
+			},
+			"credentials": {
+				"paywiseV2Api": {
+					"id": "",
+					"name": "paywise"
+				}
+			}
+		},
+		{
+			"id": "s",
+			"name": "Case summary",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [480, 0],
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "1",
+							"name": "event",
+							"value": "={{ $('paywise Trigger').item.json.type }}",
+							"type": "string"
+						},
+						{
+							"id": "2",
+							"name": "referenceNumber",
+							"value": "={{ $json.reference_number }}",
+							"type": "string"
+						},
+						{
+							"id": "3",
+							"name": "processingState",
+							"value": "={{ $json.state.processing.code }}",
+							"type": "string"
+						},
+						{
+							"id": "4",
+							"name": "openBalance",
+							"value": "={{ $json.legal_balance.total_balance.value }}",
+							"type": "string"
+						}
+					]
+				}
+			}
+		}
+	],
+	"connections": {
+		"paywise Trigger": {
+			"main": [
+				[
+					{
+						"node": "Get mandate",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Get mandate": {
+			"main": [
+				[
+					{
+						"node": "Case summary",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		}
+	},
+	"settings": {
+		"executionOrder": "v1"
+	}
+}

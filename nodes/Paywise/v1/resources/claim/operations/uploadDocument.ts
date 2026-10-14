@@ -1,7 +1,12 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { JsonObject, NodeOperationError, INodeProperties } from 'n8n-workflow';
-import FormData from 'form-data';
-import { ApiType, getApiUrl, addCommonHeaders } from '../../../apiUtils';
+import {
+	ApiType,
+	getApiUrl,
+	addCommonHeaders,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 // Define operation field properties
 export const uploadDocumentFields: INodeProperties[] = [
@@ -48,7 +53,7 @@ export const uploadDocumentFields: INodeProperties[] = [
  */
 function getContentType(fileName: string): string {
 	if (!fileName) return 'application/octet-stream';
-	
+
 	const fileExtension = fileName.split('.').pop()?.toLowerCase();
 	switch (fileExtension) {
 		case 'pdf':
@@ -72,9 +77,9 @@ function getContentType(fileName: string): string {
 /**
  * Maps node parameters for uploadDocument operation
  */
-export async function mapUploadDocumentParams(this: IExecuteFunctions): Promise<{ 
-	claimId: string; 
-	binaryPropertyName: string; 
+export async function mapUploadDocumentParams(this: IExecuteFunctions): Promise<{
+	claimId: string;
+	binaryPropertyName: string;
 	fileName: string;
 	binaryDataBuffer: Buffer;
 	contentType: string;
@@ -100,7 +105,7 @@ export async function mapUploadDocumentParams(this: IExecuteFunctions): Promise<
 	const fileName = binaryData.fileName || 'document.pdf';
 	const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(0, binaryPropertyName);
 	const contentType = getContentType(fileName);
-	
+
 	return {
 		claimId,
 		binaryPropertyName,
@@ -111,24 +116,19 @@ export async function mapUploadDocumentParams(this: IExecuteFunctions): Promise<
 }
 
 export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[uploadDocument] operation function called');
-	
 	try {
 		// Map parameters
-		const { claimId, fileName, binaryDataBuffer, contentType } = await mapUploadDocumentParams.call(this);
-		console.log('[uploadDocument] Parameters mapped:', { claimId, fileName, contentType });
-		console.log(`[uploadDocument] Buffer length: ${binaryDataBuffer.length} bytes`);
-		
+		const { claimId, fileName, binaryDataBuffer, contentType } =
+			await mapUploadDocumentParams.call(this);
+
 		// Make the API request using n8n's built-in multipart/form-data handling
-		console.log('[uploadDocument] Getting credentials and preparing request');
-		const credentials = await this.getCredentials('paywiseApi');
-		
+
 		// Use n8n's built-in multipart/form-data handling
 		const options = {
 			method: 'POST',
 			url: await getApiUrl.call(this, ApiType.CASE_MANAGEMENT, `claims/${claimId}/documents`),
 			headers: {
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 			formData: {
 				// Only include the file field as per API documentation
@@ -136,38 +136,17 @@ export async function uploadDocument(this: IExecuteFunctions): Promise<JsonObjec
 					value: binaryDataBuffer,
 					options: {
 						filename: fileName,
-						contentType: contentType
-					}
-				}
-			}
+						contentType: contentType,
+					},
+				},
+			},
 		};
-		
+
 		// Add common headers (User-Agent and X-User-Id if acting on behalf of client)
 		const optionsWithHeaders = addCommonHeaders.call(this, options, 0);
-		
-		console.log('[uploadDocument] Request prepared:', JSON.stringify({
-			method: options.method,
-			url: options.url,
-			headers: optionsWithHeaders.headers,
-			hasFormData: !!options.formData,
-			formDataKeys: options.formData ? Object.keys(options.formData) : []
-		}));
-		
-		console.log('[uploadDocument] Making authenticated API request');
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[uploadDocument] Response received successfully');
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[uploadDocument] Error:', error);
-		// If the error contains response data, log it for debugging
-		if ((error as any).response) {
-			console.error('[uploadDocument] API error response:', (error as any).response);
-		}
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

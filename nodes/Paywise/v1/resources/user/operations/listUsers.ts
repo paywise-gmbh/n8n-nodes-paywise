@@ -1,6 +1,12 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addUserAgentHeader } from '../../../apiUtils';
+import {
+	ApiType,
+	getApiUrl,
+	addUserAgentHeader,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 // Define operation field properties
 export const listUsersFields: INodeProperties[] = [
@@ -12,16 +18,17 @@ export const listUsersFields: INodeProperties[] = [
 		default: {},
 		options: [
 			{
-				displayName: 'User ID',
-				name: 'id',
+				displayName: 'Company ID',
+				name: 'company',
 				type: 'string',
 				default: '',
-				description: 'Filter by user UUID',
+				description: 'Filter by company UUID',
 			},
 			{
 				displayName: 'Email',
 				name: 'email',
 				type: 'string',
+				placeholder: 'name@email.com',
 				default: '',
 				description: 'Filter by email address',
 			},
@@ -40,11 +47,11 @@ export const listUsersFields: INodeProperties[] = [
 				description: 'Filter by last name',
 			},
 			{
-				displayName: 'Company ID',
-				name: 'company',
+				displayName: 'User ID',
+				name: 'id',
 				type: 'string',
 				default: '',
-				description: 'Filter by company UUID',
+				description: 'Filter by user UUID',
 			},
 		],
 	},
@@ -52,8 +59,8 @@ export const listUsersFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 10,
-		description: 'Number of results to return per page',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: {
 			minValue: 1,
 			maxValue: 100,
@@ -68,90 +75,83 @@ export const listUsersFields: INodeProperties[] = [
 	},
 ];
 
-function mapListUsersParams(options: any) {
+function mapListUsersParams(options: {
+	limit?: number;
+	offset?: number;
+	filters?: Record<string, string>;
+}) {
 	const filters = options.filters || {};
 	const limit = options.limit || 10;
 	const offset = options.offset || 0;
-	
+
 	const params: Record<string, string | number> = {
 		limit,
 		offset,
 	};
-	
+
 	// Add filters if present
 	if (filters.id) {
 		params.id = filters.id;
 	}
-	
+
 	if (filters.email) {
 		params.email = filters.email;
 	}
-	
+
 	if (filters.first_name) {
 		params.first_name = filters.first_name;
 	}
-	
+
 	if (filters.last_name) {
 		params.last_name = filters.last_name;
 	}
-	
+
 	if (filters.company) {
 		params.company = filters.company;
 	}
-	
-	console.log('[listUsers] Mapped parameters:', params);
 	return params;
 }
 
 export async function listUsers(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[listUsers] operation function called');
-	
 	try {
 		// Get parameters
 		const filters = this.getNodeParameter('filters', 0, {});
 		const limit = this.getNodeParameter('limit', 0, 10) as number;
 		const offset = this.getNodeParameter('offset', 0, 0) as number;
-		
+
 		// Combine all parameters
 		const paramOptions = {
 			filters,
 			limit,
 			offset,
 		};
-		
+
 		// Get and process parameters
-		const queryParams = mapListUsersParams(paramOptions);
+		const queryParams = mapListUsersParams(
+			paramOptions as Parameters<typeof mapListUsersParams>[0],
+		);
 		const queryString = Object.entries(queryParams)
 			.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
 			.join('&');
-		
+
 		// Get API URL
 		const baseUrl = await getApiUrl.call(this, ApiType.PARTNER, 'users');
 		const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-		
+
 		// Make API request
 		const requestOptions = {
 			method: 'GET',
 			url,
 			headers: {
-				'Accept': 'application/json',
+				Accept: 'application/json',
 			},
 		};
-		
+
 		// Add User-Agent header (Partner API doesn't use X-User-Id)
 		const optionsWithHeaders = addUserAgentHeader(requestOptions);
-		
-		console.log('[listUsers] Making authenticated API request to:', url);
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[listUsers] Response received successfully');
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[listUsers] Error listing users:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }

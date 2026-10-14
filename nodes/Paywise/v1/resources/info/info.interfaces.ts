@@ -1,1 +1,1 @@
-// This file is intentionally empty as the info resource doesn't need any interfaces 
+// This file is intentionally empty as the info resource doesn't need any interfaces

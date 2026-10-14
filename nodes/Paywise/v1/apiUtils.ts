@@ -1,5 +1,83 @@
-import type { IExecuteFunctions } from 'n8n-workflow';
-import { IDataObject } from 'n8n-workflow';
+import type {
+	IDataObject,
+	IExecuteFunctions,
+	IHttpRequestMethods,
+	IHttpRequestOptions,
+	IN8nHttpFullResponse,
+	INode,
+	JsonObject,
+} from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
+
+/** Request options as the version 1 operations build them (request-library style). */
+export interface V1RequestOptions {
+	method: string;
+	url: string;
+	headers: Record<string, string>;
+	body?: string | IDataObject;
+	formData?: {
+		file: { value: Buffer; options: { filename: string; contentType?: string } };
+	};
+}
+
+/**
+ * Sends a version 1 request with n8n's current HTTP helper and returns the raw response
+ * text, as the deprecated request helper did, so the operations keep parsing it themselves.
+ */
+export async function paywiseV1Request(
+	this: IExecuteFunctions,
+	// addCommonHeaders.call() narrows the options type to `{ headers }`.
+	requestOptions: V1RequestOptions | { headers: Record<string, string> },
+): Promise<string> {
+	const options = requestOptions as V1RequestOptions;
+	const request: IHttpRequestOptions = {
+		method: options.method as IHttpRequestMethods,
+		url: options.url,
+		headers: { ...options.headers },
+		encoding: 'text',
+		json: false,
+		returnFullResponse: true,
+		ignoreHttpStatusErrors: true,
+	};
+
+	if (options.formData) {
+		const { value, options: file } = options.formData.file;
+		const form = new FormData();
+		form.append('file', new Blob([value], { type: file.contentType }), file.filename);
+		request.body = form;
+	} else if (options.body !== undefined) {
+		request.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
+		request.headers!['Content-Type'] ??= 'application/json';
+	}
+
+	const response = (await this.helpers.httpRequestWithAuthentication.call(
+		this,
+		'paywiseApi',
+		request,
+	)) as IN8nHttpFullResponse;
+
+	const text =
+		typeof response.body === 'string' ? response.body : JSON.stringify(response.body ?? '');
+	if (response.statusCode >= 400) {
+		let body: JsonObject = {};
+		try {
+			body = JSON.parse(text) as JsonObject;
+		} catch {
+			body = { message: text };
+		}
+		throw new NodeApiError(this.getNode(), body, {
+			httpCode: String(response.statusCode),
+			description: text.slice(0, 2000),
+		});
+	}
+	return text;
+}
+
+/** Keeps n8n errors as they are and wraps anything else in a NodeOperationError. */
+export function asNodeError(node: INode, error: unknown): NodeApiError | NodeOperationError {
+	if (error instanceof NodeApiError || error instanceof NodeOperationError) return error;
+	return new NodeOperationError(node, error as Error);
+}
 
 /**
  * Enum for API types to distinguish between Case Management and Partner API
@@ -24,68 +102,64 @@ export async function getApiUrl(
 	itemPath: string = '',
 ): Promise<string> {
 	try {
-		const credentials = await this.getCredentials('paywiseApi') as IDataObject;
-		
+		const credentials = (await this.getCredentials('paywiseApi')) as IDataObject;
+
 		if (!credentials) {
-			throw new Error('No credentials provided for Paywise API');
+			throw new NodeOperationError(this.getNode(), 'No credentials provided for Paywise API');
 		}
-		
+
 		if (!credentials.baseUrl) {
-			throw new Error('Base URL is missing in Paywise API credentials');
+			throw new NodeOperationError(
+				this.getNode(),
+				'Base URL is missing in Paywise API credentials',
+			);
 		}
 
 		// Normalize the base URL by removing trailing slashes
 		let baseUrl = credentials.baseUrl as string;
 		baseUrl = baseUrl.replace(/\/+$/, '');
-		
+
 		// Get the appropriate subpath from credentials
 		let subpath: string;
 		if (apiType === ApiType.PARTNER) {
-			subpath = credentials.partnerApiSubpath as string || '/partner/v1';
+			subpath = (credentials.partnerApiSubpath as string) || '/partner/v1';
 		} else {
-			subpath = credentials.caseManagementApiSubpath as string || '/v1';
+			subpath = (credentials.caseManagementApiSubpath as string) || '/v1';
 		}
-		
+
 		// Normalize subpath to have exactly one leading slash and no trailing slash
 		subpath = '/' + subpath.replace(/^\/+|\/+$/g, '');
-		
-		console.log(`[getApiUrl] Using ${apiType === ApiType.PARTNER ? 'Partner' : 'Case Management'} API subpath: ${subpath}`);
 
 		// Validate resource path
 		if (!resourcePath) {
-			throw new Error('Resource path is required');
+			throw new NodeOperationError(this.getNode(), 'Resource path is required');
 		}
 
 		// Normalize resource path to have no leading slash and no trailing slash
 		const formattedResourcePath = resourcePath.replace(/^\/+|\/+$/g, '');
-		
+
 		// Normalize item path to have no leading slash and no trailing slash if provided
-		const formattedItemPath = itemPath 
-			? itemPath.replace(/^\/+|\/+$/g, '')
-			: '';
+		const formattedItemPath = itemPath ? itemPath.replace(/^\/+|\/+$/g, '') : '';
 
 		// Construct the URL with normalized parts
 		// Base URL is always used
 		let url = baseUrl;
-		
+
 		// The subpath is always added from credentials
 		url += subpath;
-		
+
 		// Add resource path if it exists
 		if (formattedResourcePath) {
 			url += `/${formattedResourcePath}`;
 		}
-		
+
 		// Add item path if it exists
 		if (formattedItemPath) {
 			url += `/${formattedItemPath}`;
 		}
-		
-		console.log(`[getApiUrl] Constructed URL: ${url}`);
-		return url+'/';
+		return url + '/';
 	} catch (error) {
-		console.error('[getApiUrl] Error constructing API URL:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }
 
@@ -94,16 +168,14 @@ export async function getApiUrl(
  * @param options The request options
  * @returns The updated request options with User-Agent header
  */
-export function addUserAgentHeader(options: { headers: Record<string, string> }): { headers: Record<string, string> } {
+export function addUserAgentHeader<T extends { headers: Record<string, string> }>(options: T): T {
 	try {
 		// Add n8n User-Agent header
 		options.headers['User-Agent'] = 'n8n-paywise-node/1.0';
-		console.log('[addUserAgentHeader] Added User-Agent header');
-		
+
 		return options;
-	} catch (error) {
+	} catch {
 		// Log the error but don't throw it to maintain backward compatibility
-		console.error('[addUserAgentHeader] Error adding User-Agent header:', error);
 		return options;
 	}
 }
@@ -116,34 +188,33 @@ export function addUserAgentHeader(options: { headers: Record<string, string> })
  * @param itemIndex The index of the item being processed
  * @returns The updated request options
  */
-export function addActOnBehalfOfClientHeader(
-	this: IExecuteFunctions, 
-	options: { headers: Record<string, string> },
+export function addActOnBehalfOfClientHeader<T extends { headers: Record<string, string> }>(
+	this: IExecuteFunctions,
+	options: T,
 	itemIndex: number,
-): { headers: Record<string, string> } {
+): T {
 	try {
 		// Check if "act on behalf of client" is enabled
-		const actOnBehalfOfClient = this.getNodeParameter('actOnBehalfOfClient', itemIndex, false) as boolean;
-		
+		const actOnBehalfOfClient = this.getNodeParameter(
+			'actOnBehalfOfClient',
+			itemIndex,
+			false,
+		) as boolean;
+
 		if (actOnBehalfOfClient) {
 			const userId = this.getNodeParameter('userId', itemIndex, '') as string;
-			
+
 			if (!userId) {
-				console.warn('[addActOnBehalfOfClientHeader] Act on behalf of client is enabled but userId is not provided');
 				return options;
 			}
-			
+
 			// Add the X-User-Id header
 			options.headers['X-User-Id'] = userId;
-			console.log(`[addActOnBehalfOfClientHeader] Added X-User-Id header: ${userId}`);
-		} else {
-			console.log('[addActOnBehalfOfClientHeader] Act on behalf of client is not enabled');
 		}
-		
+
 		return options;
-	} catch (error) {
+	} catch {
 		// Log the error but don't throw it to maintain backward compatibility
-		console.error('[addActOnBehalfOfClientHeader] Error adding Act on Behalf of Client header:', error);
 		return options;
 	}
 }
@@ -155,16 +226,16 @@ export function addActOnBehalfOfClientHeader(
  * @param itemIndex The index of the item being processed (optional, defaults to 0)
  * @returns The updated request options with all common headers
  */
-export function addCommonHeaders(
-	this: IExecuteFunctions, 
-	options: { headers: Record<string, string> },
+export function addCommonHeaders<T extends { headers: Record<string, string> }>(
+	this: IExecuteFunctions,
+	options: T,
 	itemIndex: number = 0,
-): { headers: Record<string, string> } {
+): T {
 	// Add User-Agent header
 	let updatedOptions = addUserAgentHeader(options);
-	
+
 	// Add Act on Behalf of Client header if applicable
-	updatedOptions = addActOnBehalfOfClientHeader.call(this, updatedOptions, itemIndex);
-	
+	updatedOptions = addActOnBehalfOfClientHeader.call(this, updatedOptions, itemIndex) as T;
+
 	return updatedOptions;
 }

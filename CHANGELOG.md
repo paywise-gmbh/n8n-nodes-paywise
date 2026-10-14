@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The credential for node version 2 is now called **Paywise Case Management API** (previously "Paywise V2 API"). Existing credentials keep working.
+- Node version 1: the list operations (Claim, Debtor, Company, User) return up to 50 records by default instead of 10. Workflows that set **Limit** explicitly are unchanged.
+- Node version 1 uses n8n's current HTTP helper; API errors now include the paywise error details.
+- The package passes n8n's community package scan and is prepared for verification; example workflows are in `examples/`.
+
+### Fixed
+
+- Node version 1: **Release Claim** sent an invalid request and always failed with "Bad request". It now releases the claim.
+- The **Claim → Create** example JSON now contains all fields paywise needs to accept an order.
+
 ## [1.0.0] - 2026-10-13
 
 ### Added

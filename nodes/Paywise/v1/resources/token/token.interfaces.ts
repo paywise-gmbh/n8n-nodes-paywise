@@ -17,4 +17,4 @@ export interface ITokenResponse extends IDataObject {
 	};
 	valid_until: string;
 	created: string;
-} 
+}

@@ -71,4 +71,4 @@ export interface IClaimData extends IDataObject {
 	obligation_fulfilled: boolean;
 	metadata?: IMetadata[];
 	events?: IEvent[];
-} 
+}

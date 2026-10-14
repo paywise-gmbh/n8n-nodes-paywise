@@ -1,7 +1,12 @@
+import { NodeOperationError, JsonObject, INodeProperties } from 'n8n-workflow';
 import type { IExecuteFunctions } from 'n8n-workflow';
-import { JsonObject, INodeProperties } from 'n8n-workflow';
-import { ApiType, getApiUrl, addUserAgentHeader } from '../../../apiUtils';
-import { IUserInviteData } from '../userinvite.interfaces';
+import {
+	ApiType,
+	getApiUrl,
+	addUserAgentHeader,
+	paywiseV1Request,
+	asNodeError,
+} from '../../../apiUtils';
 
 // Define operation field properties
 export const createUserInviteFields: INodeProperties[] = [
@@ -42,12 +47,14 @@ export const createUserInviteFields: INodeProperties[] = [
 				inputMethod: ['json'],
 			},
 		},
-		description: 'User invite data as JSON object. Required fields: email, company, success_url, failure_url',
+		description:
+			'User invite data as JSON object. Required fields: email, company, success_url, failure_url.',
 	},
 	{
 		displayName: 'Email',
 		name: 'email',
 		type: 'string',
+		placeholder: 'name@email.com',
 		default: '',
 		required: true,
 		displayOptions: {
@@ -75,7 +82,6 @@ export const createUserInviteFields: INodeProperties[] = [
 		name: 'first_name',
 		type: 'string',
 		default: '',
-		required: false,
 		displayOptions: {
 			show: {
 				inputMethod: ['formFields'],
@@ -88,7 +94,6 @@ export const createUserInviteFields: INodeProperties[] = [
 		name: 'last_name',
 		type: 'string',
 		default: '',
-		required: false,
 		displayOptions: {
 			show: {
 				inputMethod: ['formFields'],
@@ -125,8 +130,6 @@ export const createUserInviteFields: INodeProperties[] = [
 ];
 
 export async function createUserInvite(this: IExecuteFunctions): Promise<JsonObject> {
-	console.log('[createUserInvite] operation function called');
-	
 	try {
 		// Get input method and prepare invite data
 		const inputMethod = this.getNodeParameter('inputMethod', 0) as string;
@@ -135,19 +138,25 @@ export async function createUserInvite(this: IExecuteFunctions): Promise<JsonObj
 		if (inputMethod === 'json') {
 			// Get data from JSON input
 			const jsonData = this.getNodeParameter('jsonData', 0) as string;
-			
+
 			// Parse JSON string to object
 			try {
 				inviteData = JSON.parse(jsonData);
 			} catch (error) {
-				throw new Error(`Invalid JSON data: ${(error as Error).message}`);
+				throw new NodeOperationError(
+					this.getNode(),
+					`Invalid JSON data: ${(error as Error).message}`,
+				);
 			}
-			
+
 			// Validate required fields in JSON
 			const requiredFields = ['email', 'company', 'success_url', 'failure_url'];
 			for (const field of requiredFields) {
 				if (!inviteData[field]) {
-					throw new Error(`Required field "${field}" is missing in JSON data`);
+					throw new NodeOperationError(
+						this.getNode(),
+						`Required field "${field}" is missing in JSON data`,
+					);
 				}
 			}
 		} else {
@@ -158,13 +167,13 @@ export async function createUserInvite(this: IExecuteFunctions): Promise<JsonObj
 				success_url: this.getNodeParameter('success_url', 0) as string,
 				failure_url: this.getNodeParameter('failure_url', 0) as string,
 			};
-			
+
 			// Add optional fields if they exist
 			const first_name = this.getNodeParameter('first_name', 0, '') as string;
 			if (first_name) {
 				inviteData.first_name = first_name;
 			}
-			
+
 			const last_name = this.getNodeParameter('last_name', 0, '') as string;
 			if (last_name) {
 				inviteData.last_name = last_name;
@@ -172,37 +181,24 @@ export async function createUserInvite(this: IExecuteFunctions): Promise<JsonObj
 		}
 
 		// Get API URL
-		const url = await getApiUrl.call(
-			this,
-			ApiType.PARTNER,
-			'user_invites',
-		);
-		
+		const url = await getApiUrl.call(this, ApiType.PARTNER, 'user_invites');
+
 		// Make API request
 		const options = {
 			method: 'POST',
 			url,
 			headers: {
-				'Accept': 'application/json',
+				Accept: 'application/json',
 				'Content-Type': 'application/json',
 			},
 			body: inviteData,
 		};
-		
+
 		// Add User-Agent header (Partner API doesn't use X-User-Id)
 		const optionsWithHeaders = addUserAgentHeader(options);
-		
-		console.log('[createUserInvite] Making authenticated API request to:', url);
-		const response = await this.helpers.requestWithAuthentication.call(
-			this,
-			'paywiseApi',
-			optionsWithHeaders,
-		);
-		
-		console.log('[createUserInvite] Response received successfully');
+		const response = await paywiseV1Request.call(this, optionsWithHeaders);
 		return JSON.parse(response);
 	} catch (error) {
-		console.error('[createUserInvite] Error:', error);
-		throw error;
+		throw asNodeError(this.getNode(), error);
 	}
 }
