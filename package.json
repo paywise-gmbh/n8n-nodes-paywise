@@ -1,6 +1,6 @@
 {
 	"name": "@paywise/n8n-nodes-paywise",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "paywise API integration for n8n - German debt collection (Inkasso)",
 	"keywords": [
 		"n8n-community-node-package",
