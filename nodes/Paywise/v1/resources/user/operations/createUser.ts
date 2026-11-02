@@ -45,8 +45,8 @@ export const createUserFields: INodeProperties[] = [
 			'User data as JSON object. Must include at minimum: email, first_name, last_name, company.',
 		hint: `Example: {
   "email": "user@example.com",
-  "first_name": "Max",
-  "last_name": "Mustermann",
+  "first_name": "John",
+  "last_name": "Doe",
   "company": "6196ba03-83f2-46ea-83e1-a087bd0c5acc",
   "skip_email_verification": true,
   "notification_channels": [

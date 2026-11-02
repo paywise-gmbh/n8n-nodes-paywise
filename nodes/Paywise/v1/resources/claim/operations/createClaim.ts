@@ -102,7 +102,7 @@ export const createClaimFields: INodeProperties[] = [
     {
       "your_reference": "string",
       "document_reference": "MA-2022002",
-      "subject_matter": "Mahngebühren 1. Mahnung",
+      "subject_matter": "Fees for the first reminder",
       "occurence_date": "2022-09-24",
       "document_date": "2022-09-24",
       "due_date": "2022-10-09",
@@ -170,7 +170,7 @@ export const createClaimFields: INodeProperties[] = [
     },
     {
       "type": "comment",
-      "value": "Der Schuldner hat auf keine unserer Kontaktanfragen reagiert."
+      "value": "The debtor did not respond to any of our contact attempts."
     }
   ],
   "events": [
@@ -342,7 +342,7 @@ export const createClaimFields: INodeProperties[] = [
 			},
 		},
 		description:
-			'The date of emergence of the principal claim ("Vertragsdatum") in YYYY-MM-DD format',
+			'The date of emergence of the principal claim (contract date) in YYYY-MM-DD format',
 	},
 	{
 		displayName: 'Document Reference',
@@ -383,8 +383,7 @@ export const createClaimFields: INodeProperties[] = [
 				resource: ['claim'],
 			},
 		},
-		description:
-			'The date of your first reminder ("Mahnung") to your customer in YYYY-MM-DD format',
+		description: 'The date of your first reminder to your customer in YYYY-MM-DD format',
 	},
 	{
 		displayName: 'Delay Date',

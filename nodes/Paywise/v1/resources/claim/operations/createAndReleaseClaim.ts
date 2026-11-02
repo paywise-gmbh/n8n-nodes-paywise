@@ -217,85 +217,49 @@ function validateDocuments(
 export function mapDocuments(
 	this: IExecuteFunctions,
 ): Array<{ binary_property: string; file_name: string }> {
-	try {
-		const inputType = this.getNodeParameter('inputType', 0) as string;
+	const inputType = this.getNodeParameter('inputType', 0) as string;
 
-		if (inputType === 'json') {
-			// For JSON input, extract documents from JSON data
-			try {
-				const jsonData = this.getNodeParameter('jsonData', 0, '') as string;
-				const parsedData = JSON.parse(jsonData);
+	if (inputType === 'json') {
+		// For JSON input, extract documents from JSON data
+		const jsonData = this.getNodeParameter('jsonData', 0, '') as string;
+		const parsedData = JSON.parse(jsonData);
 
-				if (parsedData && parsedData.documents && Array.isArray(parsedData.documents)) {
-					// Map and validate the documents from JSON
-					const mappedDocs = parsedData.documents.map((doc: IDataObject, index: number) => {
-						if (!doc.binary_property) {
-							throw new NodeOperationError(
-								this.getNode(),
-								`Document #${index + 1} in JSON is missing binary_property`,
-							);
-						}
-
-						const mapped = {
-							binary_property: doc.binary_property,
-							file_name: doc.file_name || '',
-						};
-						return mapped;
-					});
-
-					return mappedDocs;
-				}
-				return [];
-			} catch {
-				return [];
-			}
-		}
-
-		if (inputType !== 'fields') {
+		if (!parsedData || !Array.isArray(parsedData.documents)) {
 			return [];
 		}
 
-		// Use a safer approach with try/catch
-		try {
-			// First check if the parameter exists
-			const hasDocumentsParameter = this.getNodeParameter('documents', 0, null) !== null;
-
-			if (!hasDocumentsParameter) {
-				return [];
+		return parsedData.documents.map((doc: IDataObject, index: number) => {
+			if (!doc.binary_property) {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Document #${index + 1} in JSON is missing binary_property`,
+				);
 			}
 
-			const documentsCollection = this.getNodeParameter('documents', 0, {
-				documentsValues: [],
-			}) as {
-				documentsValues: Array<{
-					binary_property: string;
-					file_name: string;
-				}>;
+			return {
+				binary_property: doc.binary_property as string,
+				file_name: (doc.file_name as string) || '',
 			};
+		});
+	}
 
-			if (
-				!documentsCollection ||
-				!documentsCollection.documentsValues ||
-				documentsCollection.documentsValues.length === 0
-			) {
-				return [];
-			}
-
-			// Map and validate the documents
-			const mappedDocs = documentsCollection.documentsValues.map((doc) => {
-				const mapped = {
-					binary_property: doc.binary_property || 'data', // Default to 'data' if missing
-					file_name: doc.file_name || '',
-				};
-				return mapped;
-			});
-			return mappedDocs;
-		} catch {
-			return [];
-		}
-	} catch {
+	if (inputType !== 'fields') {
 		return [];
 	}
+
+	const documentsCollection = this.getNodeParameter('documents', 0, {
+		documentsValues: [],
+	}) as {
+		documentsValues?: Array<{
+			binary_property: string;
+			file_name: string;
+		}>;
+	};
+
+	return (documentsCollection?.documentsValues ?? []).map((doc) => ({
+		binary_property: doc.binary_property || 'data', // Default to 'data' if missing
+		file_name: doc.file_name || '',
+	}));
 }
 
 /**

@@ -169,15 +169,8 @@ export async function getApiUrl(
  * @returns The updated request options with User-Agent header
  */
 export function addUserAgentHeader<T extends { headers: Record<string, string> }>(options: T): T {
-	try {
-		// Add n8n User-Agent header
-		options.headers['User-Agent'] = 'n8n-paywise-node/1.0';
-
-		return options;
-	} catch {
-		// Log the error but don't throw it to maintain backward compatibility
-		return options;
-	}
+	options.headers['User-Agent'] = 'n8n-paywise-node/1.0';
+	return options;
 }
 
 /**
@@ -193,30 +186,20 @@ export function addActOnBehalfOfClientHeader<T extends { headers: Record<string,
 	options: T,
 	itemIndex: number,
 ): T {
-	try {
-		// Check if "act on behalf of client" is enabled
-		const actOnBehalfOfClient = this.getNodeParameter(
-			'actOnBehalfOfClient',
-			itemIndex,
-			false,
-		) as boolean;
-
-		if (actOnBehalfOfClient) {
-			const userId = this.getNodeParameter('userId', itemIndex, '') as string;
-
-			if (!userId) {
-				return options;
-			}
-
-			// Add the X-User-Id header
-			options.headers['X-User-Id'] = userId;
-		}
-
-		return options;
-	} catch {
-		// Log the error but don't throw it to maintain backward compatibility
+	const actOnBehalfOfClient = this.getNodeParameter(
+		'actOnBehalfOfClient',
+		itemIndex,
+		false,
+	) as boolean;
+	if (!actOnBehalfOfClient) {
 		return options;
 	}
+
+	const userId = this.getNodeParameter('userId', itemIndex, '') as string;
+	if (userId) {
+		options.headers['X-User-Id'] = userId;
+	}
+	return options;
 }
 
 /**

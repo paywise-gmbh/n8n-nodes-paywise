@@ -76,24 +76,24 @@ export const createDebtorFields: INodeProperties[] = [
 		default: `{
   "your_reference": "MEMBER-ID-1413",
   "person": {
-    "salutation": "Herr",
-    "first_name": "Max",
-    "last_name": "Mustermann",
+    "salutation": "Mr.",
+    "first_name": "John",
+    "last_name": "Doe",
     "birth_date": "1986-08-24"
   },
   "acting_as": "consumer",
   "addresses": [
     {
-      "street": "Am Beispielbach 4",
+      "street": "Example Street 4",
       "zip": "80804",
-      "city": "München",
+      "city": "Munich",
       "country": "DE"
     }
   ],
   "communication_channels": [
     {
       "type": "email",
-      "value": "max@mustermann.de"
+      "value": "john.doe@example.com"
     }
   ],
   "bank_accounts": [

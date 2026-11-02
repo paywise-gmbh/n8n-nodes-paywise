@@ -103,22 +103,22 @@ export const createCompanyFields: INodeProperties[] = [
 			{
 				name: 'Eligible (J)',
 				value: 'J',
-				description: 'Vorsteuerabzugsberechtigt',
+				description: 'Eligible for input tax deduction',
 			},
 			{
 				name: 'Not Eligible (N)',
 				value: 'N',
-				description: 'Nicht vorsteuerabzugsberechtigt',
+				description: 'Not eligible for input tax deduction',
 			},
 			{
 				name: 'Reverse Charge (K)',
 				value: 'K',
-				description: 'Reverse-Charge-Verfahren',
+				description: 'Reverse charge procedure',
 			},
 			{
 				name: 'Third Country Business (A)',
 				value: 'A',
-				description: 'Nicht steuerbare Umsätze - Drittlandunternehmer',
+				description: 'Non-taxable sales of a business from a third country',
 			},
 		],
 		default: 'J',
@@ -180,8 +180,8 @@ export const createCompanyFields: INodeProperties[] = [
 						name: 'country',
 						type: 'options',
 						options: [
-							{ name: 'Germany', value: 'DE' },
 							{ name: 'Austria', value: 'AT' },
+							{ name: 'Germany', value: 'DE' },
 							{ name: 'Switzerland', value: 'CH' },
 							// Add more countries as needed
 						],
@@ -310,11 +310,11 @@ export const createCompanyFields: INodeProperties[] = [
 						name: 'type',
 						type: 'options',
 						options: [
-							{ name: 'Geschäftsführer', value: 'geschaeftsführer' },
-							{ name: 'Gesellschafter', value: 'gesellschafter' },
-							{ name: 'Inhaber', value: 'inhaber' },
-							{ name: 'Komplementär', value: 'komplementaer' },
-							{ name: 'Vorstand', value: 'vorstand' },
+							{ name: 'Executive Board Member', value: 'vorstand' },
+							{ name: 'General Partner', value: 'komplementaer' },
+							{ name: 'Managing Director', value: 'geschaeftsführer' },
+							{ name: 'Owner', value: 'inhaber' },
+							{ name: 'Shareholder', value: 'gesellschafter' },
 							// Add more types as needed
 						],
 						default: 'geschaeftsführer',
