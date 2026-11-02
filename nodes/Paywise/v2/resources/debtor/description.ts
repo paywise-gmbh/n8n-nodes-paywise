@@ -79,7 +79,7 @@ export const debtorDescription: INodeProperties[] = [
 		type: 'string',
 		required: true,
 		default: '',
-		placeholder: 'Musterstraße 12',
+		placeholder: 'Example Street 12',
 		description: 'Street and house number',
 		displayOptions: forDebtor(['create']),
 	},

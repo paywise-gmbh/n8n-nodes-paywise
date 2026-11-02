@@ -83,12 +83,12 @@ const versionDescription: INodeTypeDescription = {
 				{
 					name: 'Single Mandate Statement',
 					value: 'singleMandateStatement',
-					description: 'Statement for one mandate (Aktenabrechnung)',
+					description: 'Statement for a single mandate',
 				},
 				{
 					name: 'Statement',
 					value: 'statement',
-					description: 'Collective statement (Sammelabrechnung)',
+					description: 'Collective statement across mandates',
 				},
 			],
 			default: 'order',

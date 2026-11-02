@@ -119,7 +119,7 @@ export const mandateDescription: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				placeholder: 'K26-6612Y',
-				description: 'The paywise file number (Aktenzeichen)',
+				description: 'The paywise file number',
 			},
 			{
 				displayName: 'Requests to Client',

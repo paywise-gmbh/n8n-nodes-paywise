@@ -1,6 +1,6 @@
 {
 	"node": "@paywise/n8n-nodes-paywise.paywise",
-	"nodeVersion": "2.0",
+	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Finance & Accounting"],
 	"resources": {
