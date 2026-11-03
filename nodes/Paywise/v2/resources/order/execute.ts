@@ -79,7 +79,7 @@ export async function executeOrder(
 			return await finalize.call(this, i, this.getNodeParameter('orderId', i) as string);
 
 		case 'withdraw': {
-			const reason = this.getNodeParameter('reason', i, '') as string;
+			const reason = this.getNodeParameter('options.reason', i, '') as string;
 			const body: IDataObject = reason ? { reason } : {};
 			return await paywiseApiRequest.call(this, 'POST', `${orderPath()}withdraw/`, {
 				body,

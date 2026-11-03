@@ -32,7 +32,10 @@ export function returnAllOrLimit(displayOptions: IDisplayOptions): INodeProperti
 	];
 }
 
-export function idempotencyKeyOption(displayOptions: IDisplayOptions): INodeProperties {
+export function idempotencyKeyOption(
+	displayOptions: IDisplayOptions,
+	extraOptions: INodeProperties[] = [],
+): INodeProperties {
 	return {
 		displayName: 'Options',
 		name: 'options',
@@ -49,6 +52,7 @@ export function idempotencyKeyOption(displayOptions: IDisplayOptions): INodeProp
 				description:
 					'Key that makes retries safe: the same key and body within 24 hours returns the original result instead of acting twice. Generated per execution and item when empty. Use your own (e.g. an invoice number) to deduplicate across executions.',
 			},
+			...extraOptions,
 		],
 	};
 }
