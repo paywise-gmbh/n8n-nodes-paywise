@@ -91,14 +91,6 @@ export const paymentDescription: INodeProperties[] = [
 		description: 'Date the money arrived',
 		displayOptions: forPayment(['report']),
 	},
-	{
-		displayName: 'Your Reference',
-		name: 'yourReference',
-		type: 'string',
-		default: '',
-		description: 'Your own ID for the payment, e.g. the bank transaction ID',
-		displayOptions: forPayment(['report']),
-	},
 
 	idParameter('payment', ['get'], 'paymentId', 'Payment ID'),
 	idParameter('payment', ['delete'], 'claimId', 'Claim ID'),
@@ -127,7 +119,15 @@ export const paymentDescription: INodeProperties[] = [
 		],
 	},
 
-	idempotencyKeyOption(forPayment(['report'])),
+	idempotencyKeyOption(forPayment(['report']), [
+		{
+			displayName: 'Your Reference',
+			name: 'yourReference',
+			type: 'string',
+			default: '',
+			description: 'Your own ID for the payment, e.g. the bank transaction ID',
+		},
+	]),
 ];
 
 const dateOnly = (value: unknown) => String(value ?? '').slice(0, 10);
@@ -151,7 +151,7 @@ export async function executePayment(
 					currency: this.getNodeParameter('currency', i, 'EUR'),
 				},
 				value_date: dateOnly(this.getNodeParameter('valueDate', i)),
-				your_reference: this.getNodeParameter('yourReference', i, ''),
+				your_reference: this.getNodeParameter('options.yourReference', i, ''),
 			});
 			return await paywiseApiRequest.call(this, 'POST', path, {
 				body,

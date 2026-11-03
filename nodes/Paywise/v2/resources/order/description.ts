@@ -215,17 +215,6 @@ export const orderDescription: INodeProperties[] = [
 		],
 	},
 
-	// withdraw
-	{
-		displayName: 'Reason',
-		name: 'reason',
-		type: 'string',
-		typeOptions: { rows: 3 },
-		default: '',
-		description: 'Optional explanation for the withdrawal, up to 5000 characters',
-		displayOptions: forOrder(['withdraw']),
-	},
-
 	// getAll
 	...returnAllOrLimit(forOrder(['getAll'])),
 	{
@@ -306,5 +295,15 @@ export const orderDescription: INodeProperties[] = [
 		],
 	},
 
-	idempotencyKeyOption(forOrder(['create', 'finalize', 'withdraw'])),
+	idempotencyKeyOption(forOrder(['create', 'finalize'])),
+	idempotencyKeyOption(forOrder(['withdraw']), [
+		{
+			displayName: 'Reason',
+			name: 'reason',
+			type: 'string',
+			typeOptions: { rows: 3 },
+			default: '',
+			description: 'Explanation for the withdrawal, up to 5000 characters',
+		},
+	]),
 ];

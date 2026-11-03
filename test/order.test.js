@@ -153,3 +153,12 @@ test('delete returns a confirmation for the 204 response', async () => {
 	assert.strictEqual(requests[0].url, 'https://api-sandbox.paywise.de/v2/orders/o%2F1/');
 	assert.deepStrictEqual(output[0].json, { id: 'o/1', deleted: true });
 });
+
+test('withdraw sends the reason from the options collection', async () => {
+	const { requests } = await run(
+		{ resource: 'order', operation: 'withdraw', orderId: 'o-1', options: { reason: 'Paid' } },
+		[ok({ id: 'o-1', status: 'withdrawn' })],
+	);
+	assert.strictEqual(requests[0].url, 'https://api-sandbox.paywise.de/v2/orders/o-1/withdraw/');
+	assert.deepStrictEqual(requests[0].body, { reason: 'Paid' });
+});

@@ -221,7 +221,6 @@ test('payment report targets mandate or claim with a two-decimal amount', async 
 			amount: 50,
 			currency: 'EUR',
 			valueDate: '2026-10-01T00:00:00.000Z',
-			yourReference: '',
 		},
 		[ok({ id: 'p-1' }, 201)],
 	);
@@ -240,7 +239,7 @@ test('payment report targets mandate or claim with a two-decimal amount', async 
 			amount: 12.5,
 			currency: 'EUR',
 			valueDate: '2026-10-02',
-			yourReference: 'TX-1',
+			options: { yourReference: 'TX-1' },
 		},
 		[ok({ id: 'p-2' }, 201)],
 	);
